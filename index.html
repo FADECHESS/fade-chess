@@ -26,6 +26,12 @@ header h1{font-size:18px;margin:0;letter-spacing:.3px}
 body{overflow-x:hidden}
 @media(min-width:760px){.layout{grid-template-columns:minmax(0,480px) 1fr;align-items:start}}
 .boardwrap{position:relative;width:100%;max-width:480px;margin:0 auto;user-select:none}
+.mtbanner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.85);z-index:20;pointer-events:none;opacity:0;text-align:center;padding:16px 26px;border-radius:14px;background:rgba(10,4,32,.88);border:2px solid #ffd76b;box-shadow:0 0 28px rgba(255,215,107,.55),0 0 60px rgba(255,63,208,.35);white-space:nowrap}
+.mtbanner b{display:block;font:800 clamp(26px,8vw,40px)/1.05 system-ui,sans-serif;letter-spacing:.14em;color:#ffe9a8;text-shadow:0 0 10px #ffb84d,0 0 24px #ff3fd0}
+.mtbanner small{display:block;margin-top:6px;font:500 13px/1.3 system-ui,sans-serif;color:#cfefff;letter-spacing:.02em}
+.mtbanner.show{animation:mtShow 2.6s ease both}
+@keyframes mtShow{0%{opacity:0;transform:translate(-50%,-50%) scale(.7)}14%{opacity:1;transform:translate(-50%,-50%) scale(1.04)}22%{transform:translate(-50%,-50%) scale(1)}78%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1)}}
+@media (prefers-reduced-motion:reduce){.mtbanner.show{animation-duration:2.6s;animation-name:mtFade}@keyframes mtFade{0%,100%{opacity:0}10%,80%{opacity:1}}}
 .board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);aspect-ratio:1/1;width:100%;border-radius:6px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.45)}
 .sq{position:relative;aspect-ratio:1/1;min-width:0;min-height:0;overflow:hidden}
 .sq.l{background:var(--light)}.sq.d{background:var(--dark)}
@@ -166,6 +172,7 @@ button.b{transition:transform .1s,background .2s}button.b:active{transform:scale
     <div class="panel hidden" id="levelBox" style="margin-bottom:10px"><h2>Choose your starting level</h2><p class="note">Pick the one closest to you. Your rating adjusts after every puzzle, so you can't choose wrong.</p><div id="levelBtns" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"></div></div>
     <div class="boardwrap">
       <div class="board" id="board"></div>
+      <div class="mtbanner" id="mtBanner" aria-live="polite"><b>MASTER TIME</b><small>A puzzle from a game between titled players</small></div>
       <div id="promo" class="promo hidden"></div>
       <canvas id="fx"></canvas>
       <div class="combo" id="combo"></div><div class="pts" id="pts"></div>
@@ -611,7 +618,7 @@ function autoGrade(secs){ // Bewertung aus Fehlertyp, Tipp, Zeit und Kalibrierun
 }
 function filtered(){
   const f=settings.filter; const md=$('mode')&&$('mode').value; const fs=(md!=='study'&&/^(Meisterpartien|Eröffnung)/.test(f.set||''))?'':f.set;   // Studium-Sets (Meisterpartien, Eröffnungslinien) als Filter gelten nur im Studium – sonst bliebe für Taktik-Modi nichts übrig
-    return puzzles.filter(p=>(!p.game||md==='study')&&p.set!=='Meisterpuzzles: Jobava London'&&(!fs||(p.set||'Starter set')===fs)&&(!f.theme||p.theme===f.theme)&&(f.min===''||p.rating>=+f.min)&&(f.max===''||p.rating<=+f.max));
+    return puzzles.filter(p=>(!p.game||md==='study')&&p.src!=='master'&&p.set!=='Meisterpuzzles: Jobava London'&&(!fs||(p.set||'Starter set')===fs)&&(!f.theme||p.theme===f.theme)&&(f.min===''||p.rating>=+f.min)&&(f.max===''||p.rating<=+f.max));
 }
 // Reihenfolge: Fällige nach Fälligkeit, aber am selben Tag fällige gemischt; neue Puzzles in gemischter Reihenfolge (fester Zufalls-Schlüssel pro Puzzle, damit Themen und Ratings durcheinander kommen statt in Import-Reihenfolge)
 prog.salt = prog.salt || Math.random().toString(36).slice(2);
@@ -731,7 +738,9 @@ function artsState(){ const st={}; let n=0;
 function artsTerm(s){ if(!s.ok) return ARTS.W; if(s.hint) return ARTS.W/2; return Math.max(0.15, ARTS.b*Math.log(ARTS.r*Math.max(s.rho==null?1:s.rho,0.01))); }
 function artsPrio(s,n){ const N=n-s.last; return N<=ARTS.D ? -1 : ARTS.a*(N-ARTS.D)*artsTerm(s); }
 function artsGap(s){ return Math.round(ARTS.D+ARTS.NEW/(ARTS.a*artsTerm(s))); }
-function artsList(){ return filtered().filter(p=>!isOpening(p)); }
+function artsList(){ const l=filtered().filter(p=>!isOpening(p)); if(!LEVELS) return l;
+  if(prog.deck){ const ids=new Set(prog.deck.ids), lc=deckLeeches(); return l.filter(p=>ids.has(p.id)&&!lc.has(p.id)); }
+  const used=new Set(prog.deckUsed||[]); return l.filter(p=>!used.has(p.id)); }
 // Mini-Games: bis zu 5 Puzzles einer Kategorie (Motiv oder Markierung) am Stück, schwächste zuerst
 let mini=null; const MG_LEN=5;
 function themeName(t){ return String(t||'').replace(/([a-z])([A-Z0-9])/g,'$1 $2').replace(/^./,c=>c.toUpperCase()); }
@@ -758,7 +767,8 @@ function mgStreak(clean){ if(!clean){ prog.artsRun=0; saveProg(); return; } prog
 function mgFinish(){ const n=mini.res.length; if(!n){ mgStop(''); return; } const okc=mini.res.filter(r=>r.ok).length; const ts=mini.res.filter(r=>r.net!=null).map(r=>r.net); const avg=ts.length?Math.round(ts.reduce((a,b)=>a+b,0)/ts.length):0;
   const msg=mini.icon+' '+mini.label+' done: '+okc+'/'+n+' clean'+(ts.length?' · avg think time '+avg+' s':'')+(okc===n&&n>1?' – perfect!':''); toast(msg); if(okc===n&&n>1) fireworks(4, 6); mgStop(msg); }
 function mgRecord(ok, net){ if(!mini||!cur||cur.id!==mini.ids[mini.i]) return; mini.res.push({ok,net}); mini.i++; if(mini.i>=mini.ids.length) mgFinish(); }
-function artsPick(){ if(mini){ if(cur && !solved && cur.id===mini.ids[mini.i] && mini.shown===mini.i) mini.i++;   // „Weiter“ ohne Lösen überspringt das Puzzle
+function artsPick(){ { const mp=mtPick(); if(mp) return mp; }
+  if(mini){ if(cur && !solved && cur.id===mini.ids[mini.i] && mini.shown===mini.i) mini.i++;   // „Weiter“ ohne Lösen überspringt das Puzzle
     while(mini.i<mini.ids.length){ const p=puzzles.find(x=>x.id===mini.ids[mini.i]); if(p){ mini.shown=mini.i; queueKind=mini.icon+' '+mini.label+' · '+(mini.i+1)+'/'+mini.ids.length; return p; } mini.i++; }
     mgFinish(); }
   const list=artsList(); if(!list.length){ queueKind='Adaptive · no tactics puzzles in the filter'; return null; }
@@ -767,14 +777,14 @@ function artsPick(){ if(mini){ if(cur && !solved && cur.id===mini.ids[mini.i] &&
   let best=-Infinity, top=[]; for(const p of live){ const v=artsPrio(st[p.id],n); if(v>best+1e-9){ best=v; top=[p]; } else if(Math.abs(v-best)<=1e-9) top.push(p); }
   const why=p=>{ const s=st[p.id]; return 'Adaptive · repeat – last time '+(!s.ok?'wrong':s.hint?'with a hint':s.rho<=1?'fast':'slow')+', '+(n-s.last)+' puzzles ago'; };
   if(top.length && best>=ARTS.NEW){ const p=rnd(notCur(top)); queueKind=why(p); return p; }
-  if(fresh.length && LEVELS){ const R=plRating(); let win=fresh.filter(p=>p.rating>=R-300&&p.rating<=R-100); if(!win.length) win=fresh.slice().sort((a,b)=>Math.abs(a.rating-(R-200))-Math.abs(b.rating-(R-200))).slice(0,40); const dv=win.filter(p=>(p.theme||'')!==lastTheme); queueKind='Adaptive · new puzzle at your level'; return rnd(notCur(dv.length?dv:win)); }
+  if(fresh.length && LEVELS && !(prog.deck && live.length>=DECK_WIP)){ const R=plRating(); let win=fresh.filter(p=>p.rating>=R-300&&p.rating<=R-100); if(!win.length) win=fresh.slice().sort((a,b)=>Math.abs(a.rating-(R-200))-Math.abs(b.rating-(R-200))).slice(0,40); const dv=win.filter(p=>(p.theme||'')!==lastTheme); queueKind=prog.deck?'Stack '+prog.deck.n+' · new puzzle':'Calibrating · new puzzle at your level'; return rnd(notCur(dv.length?dv:win)); }
   if(fresh.length){ const diff=fresh.filter(p=>(p.theme||'')!==lastTheme); queueKind='Adaptive · new ('+fresh.length+' of '+list.length+' still unseen)'; return rnd(notCur(diff.length?diff:fresh)); }
   if(top.length && best>0){ const p=rnd(notCur(top)); queueKind=why(p); return p; }
   if(live.length){ const p=rnd(notCur(live)); queueKind=why(p); return p; }
   queueKind='Adaptive · everything automated'; return null; }
 function artsHud(){ const list=artsList(); const {st}=artsState(); let fresh=0,ret=0,live=0; for(const p of list){ const s=st[p.id]; if(!s) fresh++; else if(s.ret) ret++; else live++; }
   const ev=(prog.events||[]).filter(e=>e.mode==='arts'&&e.d===today()); const fast=ev.filter(e=>e.ok&&!e.hint&&!e.reveal&&e.rho<=1).length, okc=ev.filter(e=>e.ok&&!e.reveal).length;
-  $('artsInfo').textContent='Unseen '+fresh+' · in rotation '+live+' · automated '+ret+' · today '+ev.length+(ev.length?' ('+okc+' correct, '+fast+' at target speed)':'')+' · streak '+(prog.artsRun||0)+'/'+MG_EVERY+' to the mini-game'; }
+  $('artsInfo').textContent=deckHud()+'Unseen '+fresh+' · in rotation '+live+' · automated '+ret+' · today '+ev.length+(ev.length?' ('+okc+' correct, '+fast+' at target speed)':'')+' · streak '+(prog.artsRun||0)+'/'+MG_EVERY+' to the mini-game'+(LEVELS&&puzzles.some(p=>p.src==='master')?(prog.mtDue?' · Master Time next':' · Master Time in '+mtLeft()):''); }
 function artsFeedback(secs, reveal){ const p=cur; const s=artsState().st[p.id]; if(!s) return; const mv=artsMoves(p), net=artsNet(p,secs), tg=artsTarget(p);
   const back=' – back in about '+artsGap(s)+' puzzles';
   if(reveal){ $('sub').textContent='Solution shown'+back; return; }
@@ -792,14 +802,16 @@ function loadBands(){ const need=bandsNeeded().filter(b=>bandLoaded[b]!==true &&
       for(const p of arr) if(!ids.has(p.id)) puzzles.push({id:p.id, fen:p.fen, moves:p.moves, theme:p.theme, rating:p.rating, premove:true, set:name, src:'band', url:'https://lichess.org/training/'+p.id});
       bandLoaded[b]=true; }).catch(()=>{ bandLoaded[b]=false; }); })).then(()=>need.length); }
 function levelInfo(delta){ const el=$('levelInfo'); if(!LEVELS||!el) return; el.classList.remove('hidden'); const R=plRating();
-  el.textContent='Your puzzle rating: '+R+(delta?' ('+(delta>0?'+':'')+delta+')':'')+' · new puzzles around '+Math.max(BAND_LO,R-200); }
-function levelUpdate(o){ if(!LEVELS||!cur||cur.src!=='band') return; const b=bandOf(cur.rating); prog.bands=prog.bands||[]; if(!prog.bands.includes(b)) prog.bands.push(b);
+  el.textContent='Your puzzle rating: '+R+' ± '+ciHalf()+(delta?' ('+(delta>0?'+':'')+delta+')':'')+(prog.deck?' · stack '+prog.deck.n+': '+deckLeft()+' left':' · calibrating'); }
+function levelUpdate(o){ if(!LEVELS||!cur||(cur.src!=='band'&&cur.src!=='master')) return; if(cur.src==='band'){ const b=bandOf(cur.rating); prog.bands=prog.bands||[]; if(!prog.bands.includes(b)) prog.bands.push(b); }
   if(prog.events.filter(e=>e.id===cur.id).length>1) return;                     // nur der erste Versuch an einem Puzzle zählt fürs Rating
   const R=prog.rating||settings.level||1400, n=prog.ratingN||0; const S=(o.ok&&!o.reveal)?(o.hint?0.5:1):0; const E=1/(1+Math.pow(10,(cur.rating-R)/400)); const K=n<15?56:n<50?32:20;
-  const nr=Math.max(400, Math.min(3000, R+K*(S-E))); const d=Math.round(nr)-Math.round(R); prog.rating=nr; prog.ratingN=n+1; levelInfo(d);
-  if(bandsNeeded().some(x=>bandLoaded[x]!==true)) loadBands().then(k=>{ if(k){ renderSets(); updateStats(); } }); }
-function levelSet(v){ settings.level=v; prog.rating=v; prog.ratingN=0; saveSettings(); saveProg(); $('levelBox').classList.add('hidden'); levelStart(true); }
-function levelStart(fresh){ setMsg('Loading puzzles …',''); loadBands().then(()=>{ wpReady=true; renderSets(); updateStats(); renderHud(); levelInfo(0);
+  const nr=Math.max(400, Math.min(3000, R+K*(S-E))); const d=Math.round(nr)-Math.round(R); rdUpdate(R, cur.rating, S); prog.rating=nr; prog.ratingN=n+1;
+  prog.rHist=(prog.rHist||[]).concat(Math.round(nr)).slice(-200); prog.calibN=(prog.calibN||0)+1; if(!prog.deck && calReady()) deckMake();
+  levelInfo(d);
+  if(bandsNeeded().some(x=>bandLoaded[x]!==true)) loadBands().then(k=>{ if(k){ renderSets(); updateStats(); } }); loadMaster(); }
+function levelSet(v){ settings.level=v; prog.rating=v; prog.ratingN=0; prog.rd=RD_START; prog.rHist=[]; prog.calibN=0; if(prog.deck){ prog.deckUsed=(prog.deckUsed||[]).concat(prog.deck.ids); prog.deck=null; } saveSettings(); saveProg(); $('levelBox').classList.add('hidden'); levelStart(true); }
+function levelStart(fresh){ setMsg('Loading puzzles …',''); loadMaster(); loadBands().then(()=>{ wpReady=true; renderSets(); updateStats(); renderHud(); levelInfo(0);
     if(!puzzles.some(p=>p.src==='band')){ setMsg('The puzzles could not be loaded','Check your connection and reload the page.'); return; }
     if(fresh){ prog.resume=null; load(pick()); } else if(!cur) resumeOrPick(); }); }
 function levelInit(){ const box=$('levelBtns'); box.innerHTML=LEVEL_OPTS.map(o=>'<button class="b" data-l="'+o[0]+'" style="text-align:left;padding:10px 12px"><b>'+o[1]+'</b><br><small style="opacity:.75">'+o[2]+' · about '+o[0]+'</small></button>').join('');
@@ -807,6 +819,54 @@ function levelInit(){ const box=$('levelBtns'); box.innerHTML=LEVEL_OPTS.map(o=>
   const sel=$('levelSel'); sel.innerHTML='<option value="">keep my current rating</option>'+LEVEL_OPTS.map(o=>'<option value="'+o[0]+'">'+o[1]+' (about '+o[0]+')</option>').join(''); sel.classList.remove('hidden'); $('levelLbl').classList.remove('hidden');
   sel.onchange=()=>{ if(sel.value){ levelSet(+sel.value); toast('Level set to '+sel.options[sel.selectedIndex].text); sel.value=''; } };
   if(prog.rating||settings.level) levelStart(false); else { $('levelBox').classList.remove('hidden'); setMsg('Choose your level','Pick a starting level above to get your first puzzle.'); } }
+// ---------- Master Time (nur öffentliche Version): jedes 25. Puzzle im Adaptiv-Modus stammt aus einer Partie von Titelträgern, etwa 100 Punkte über dem eigenen Rating ----------
+const MT_EVERY=25, MT_ABOVE=100, masterLoaded={};
+function mtBands(){ const T=plRating()+MT_ABOVE; return [bandOf(T-100), bandOf(T), bandOf(T+100)].filter((b,i,a)=>a.indexOf(b)===i); }
+function loadMaster(){ if(!LEVELS) return Promise.resolve(0); const need=mtBands().filter(b=>masterLoaded[b]!==true && masterLoaded[b]!=='loading');
+  return Promise.all(need.map(b=>{ masterLoaded[b]='loading'; return fetch('data/master-'+b+'.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(arr=>{ const ids=new Set(puzzles.map(p=>p.id));
+      for(const p of arr) if(!ids.has(p.id)) puzzles.push({id:p.id, fen:p.fen, moves:p.moves, theme:p.theme, rating:p.rating, premove:true, set:'Master Time', src:'master', url:p.game||('https://lichess.org/training/'+p.id)});
+      masterLoaded[b]=true; }).catch(()=>{ masterLoaded[b]=false; }); })).then(()=>need.length); }
+function mtLeft(){ return Math.max(0, MT_EVERY-1-(prog.mtCount||0)); }
+function mtTick(){ if(!LEVELS||!cur||cur.src==='master') return; prog.mtCount=(prog.mtCount||0)+1; if(prog.mtCount>=MT_EVERY-1) prog.mtDue=true; saveProg(); if(prog.mtDue) loadMaster(); }
+function mtPick(){ if(!LEVELS||!prog.mtDue||mini) return null; const T=plRating()+MT_ABOVE; const seen=new Set((prog.events||[]).map(e=>e.id));
+  const pool=puzzles.filter(p=>p.src==='master'&&!seen.has(p.id)); let win=pool.filter(p=>Math.abs(p.rating-T)<=75);
+  if(!win.length) win=pool.slice().sort((a,b)=>Math.abs(a.rating-T)-Math.abs(b.rating-T)).slice(0,20).filter(p=>Math.abs(p.rating-T)<=200);
+  if(!win.length){ loadMaster(); return null; }   // noch nicht geladen: normales Puzzle, Master Time kommt beim nächsten Mal
+  const p=win[Math.floor(Math.random()*win.length)]; prog.mtDue=false; prog.mtCount=0; saveProg(); queueKind='Master Time · from a game between titled players'; return p; }
+function mtBanner(){ const el=$('mtBanner'); if(!el) return; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
+// ---------- Einstufung und fester Stapel (nur öffentliche Version) ----------
+// Solange das Puzzle-Rating sich noch bewegt, wird eingestuft. Sobald das 95-%-Intervall schmal genug ist und das Rating stagniert,
+// entsteht ein fester Stapel. Er ist geschafft, wenn jedes Puzzle verblasst ist oder als hartnäckig in den Blunder Pile gewandert ist.
+const DECK_N=150, DECK_WIP=25, DECK_LEECH=5, CAL_MIN=30, CAL_RD=75, CAL_FLAT=80, CAL_LOOK=20, RD_START=350, RD_REDO=150;
+function rdNow(){ return prog.rd||RD_START; }
+function ciHalf(){ return Math.round(1.96*rdNow()); }
+function rdUpdate(R, r, S){ const q=Math.LN10/400, g=1/Math.sqrt(1+3*q*q*80*80/(Math.PI*Math.PI)); const E=1/(1+Math.pow(10,-g*(R-r)/400));
+  const d2=1/(q*q*g*g*E*(1-E)); let rd=Math.sqrt(1/(1/(rdNow()*rdNow())+1/d2)); rd=Math.sqrt(rd*rd+10*10); prog.rd=Math.min(RD_START, rd); }
+function calReady(){ const h=prog.rHist||[]; if((prog.calibN||0)<CAL_MIN || rdNow()>CAL_RD || h.length<=CAL_LOOK) return false;
+  return Math.abs(h[h.length-1]-h[h.length-1-CAL_LOOK])<CAL_FLAT; }
+function deckLeeches(){ if(!prog.deck) return new Set(); const ids=new Set(prog.deck.ids), bad={};
+  for(const e of (prog.events||[]).slice(prog.deck.ev0||0)) if(e.mode==='arts'&&ids.has(e.id)&&(!e.ok||e.reveal)) bad[e.id]=(bad[e.id]||0)+1;
+  return new Set(Object.keys(bad).filter(id=>bad[id]>=DECK_LEECH)); }
+function deckLeft(){ if(!prog.deck) return 0; const {st}=artsState(), lc=deckLeeches(); return prog.deck.ids.filter(id=>!(st[id]&&st[id].ret)&&!lc.has(id)).length; }
+function deckMake(){ const R=plRating(), seen=new Set((prog.events||[]).map(e=>e.id)), used=new Set(prog.deckUsed||[]);
+  const base=puzzles.filter(p=>p.src==='band'&&!seen.has(p.id)&&!used.has(p.id)); let lo=R-250, hi=R-50, pool=[];
+  for(let w=0; w<4; w++){ pool=base.filter(p=>p.rating>=lo&&p.rating<=hi); if(pool.length>=DECK_N*1.5) break; lo-=100; hi+=50; }
+  if(pool.length<DECK_N/2) return false;
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  const cap=Math.ceil(DECK_N/6), per={}, ids=[]; for(const p of pool){ const t=p.theme||''; if((per[t]||0)>=cap) continue; per[t]=(per[t]||0)+1; ids.push(p.id); if(ids.length>=DECK_N) break; }
+  for(const p of pool){ if(ids.length>=DECK_N) break; if(!ids.includes(p.id)) ids.push(p.id); }
+  prog.deck={n:(prog.decks||[]).length+1, ids, made:today(), R:Math.round(R), ci:ciHalf(), ev0:(prog.events||[]).length};
+  prog.bands=prog.bands||[]; for(const id of ids){ const p=puzzles.find(x=>x.id===id); const b=bandOf(p.rating); if(!prog.bands.includes(b)) prog.bands.push(b); }
+  saveProg(); const msg='Calibration done: about '+Math.round(R)+' ± '+prog.deck.ci+'. Your stack '+prog.deck.n+' with '+ids.length+' puzzles is ready.'; toast(msg); setMsg('New stack',msg); fireworks(2,3); return true; }
+function deckCheck(){ if(!LEVELS||!prog.deck||deckLeft()>0) return; const d=prog.deck, lc=deckLeeches();
+  const ev=(prog.events||[]).slice(d.ev0||0).filter(e=>e.mode==='arts'&&d.ids.includes(e.id));
+  prog.decks=prog.decks||[]; prog.decks.push({n:d.n, size:d.ids.length, made:d.made, done:today(), attempts:ev.length, stuck:lc.size, R0:d.R, R1:plRating()});
+  prog.deckUsed=(prog.deckUsed||[]).concat(d.ids); prog.deck=null; prog.calibN=0; prog.rd=Math.max(rdNow(), RD_REDO); saveProg();
+  const msg='Stack '+d.n+' cleared! '+ev.length+' attempts'+(lc.size?', '+lc.size+' stubborn puzzles moved to the Blunder Pile':'')+'. A short recalibration, then your next stack.';
+  toast(msg); setMsg('Stack cleared',msg); fireworks(6,8); }
+function deckHud(){ if(!LEVELS) return ''; if(prog.deck){ const {st}=artsState(); const live=prog.deck.ids.filter(id=>st[id]&&!st[id].ret).length;
+    return 'Stack '+prog.deck.n+': '+deckLeft()+' of '+prog.deck.ids.length+' left · '+(live>=DECK_WIP?'new puzzles paused until some fade · ':''); }
+  return 'Calibrating: '+plRating()+' ± '+ciHalf()+' · '+Math.min(prog.calibN||0,CAL_MIN)+'/'+CAL_MIN+' · '; }
 function pick(){
   const mode=$('mode').value;
   if(mode==='master'){ const ml=puzzles.filter(p=>p.set==='Meisterpuzzles: Jobava London'); if(!ml.length) return null; const s=stackPool('master',ml); queueKind='Meisterpuzzles · Stapel '+s.pos+'/'+s.total+(s.round>1?' · round '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
@@ -923,7 +983,7 @@ function resumeOrPick(){
   load(pick());
 }
 function load(p){
-  ++loadTok; waitT=0; wrongTried=[]; $('askBox').classList.add('hidden'); $('btnAsk').disabled=true; cur=p; $('replay').classList.add('hidden'); if(!p){ setMsg($('mode').value==='wow'?'No Mind-Blowing puzzles yet':$('mode').value==='arts'?(artsList().length?'Everything automated 🎉':'No tactics puzzles in the filter'):$('mode').value==='sprenger'?'No Brain Breakers yet':$('mode').value==='misses'?(missList().length?'Blunder Pile done for today ✓':'Blunder Pile empty 🎉'):$('mode').value==='arcade'?((settings.arcadeOrder||'random')==='seq'?'Sequential set complete 🎉':'No tactics puzzles in the filter'):$('mode').value==='wood'?'Daily block done':$('mode').value==='study'?'Keine kommentierten Linien im Filter':'Nothing due 🎉', $('mode').value==='wow'?'Mark a puzzle that delights you with 🤯 + in any mode.':$('mode').value==='sprenger'?'Mark a hard puzzle with 💣 + in any mode.':$('mode').value==='misses'?(missList().length?'All open puzzles already solved cleanly today – they return tomorrow.':'All mistakes ironed out – switch to another mode.'):$('mode').value==='arcade'?((settings.arcadeOrder||'random')==='seq'?'Reset the position with ↺ or change the filter.':'Set the filter to "all" in the Puzzles tab.'):$('mode').value==='wood'?'More tomorrow – or raise the daily goal in Settings (0 = unlimited).':'Raise "New puzzles per day", switch mode or import puzzles.'); pos=parseFEN('8/8/8/8/8/8/8/8 w - - 0 1'); locked=true; sel=null; lastMove=null; hintSq=null; marks={}; render(); $('gradeRow').classList.add('hidden'); updateStats(); return; }
+  ++loadTok; waitT=0; wrongTried=[]; $('askBox').classList.add('hidden'); $('btnAsk').disabled=true; cur=p; if(p&&p.src==='master') setTimeout(mtBanner,60); $('replay').classList.add('hidden'); if(!p){ setMsg($('mode').value==='wow'?'No Mind-Blowing puzzles yet':$('mode').value==='arts'?(artsList().length?'Everything automated 🎉':'No tactics puzzles in the filter'):$('mode').value==='sprenger'?'No Brain Breakers yet':$('mode').value==='misses'?(missList().length?'Blunder Pile done for today ✓':'Blunder Pile empty 🎉'):$('mode').value==='arcade'?((settings.arcadeOrder||'random')==='seq'?'Sequential set complete 🎉':'No tactics puzzles in the filter'):$('mode').value==='wood'?'Daily block done':$('mode').value==='study'?'Keine kommentierten Linien im Filter':'Nothing due 🎉', $('mode').value==='wow'?'Mark a puzzle that delights you with 🤯 + in any mode.':$('mode').value==='sprenger'?'Mark a hard puzzle with 💣 + in any mode.':$('mode').value==='misses'?(missList().length?'All open puzzles already solved cleanly today – they return tomorrow.':'All mistakes ironed out – switch to another mode.'):$('mode').value==='arcade'?((settings.arcadeOrder||'random')==='seq'?'Reset the position with ↺ or change the filter.':'Set the filter to "all" in the Puzzles tab.'):$('mode').value==='wood'?'More tomorrow – or raise the daily goal in Settings (0 = unlimited).':'Raise "New puzzles per day", switch mode or import puzzles.'); pos=parseFEN('8/8/8/8/8/8/8/8 w - - 0 1'); locked=true; sel=null; lastMove=null; hintSq=null; marks={}; render(); $('gradeRow').classList.add('hidden'); updateStats(); return; }
   pos=parseFEN(p.fen); line=p.moves.slice(); ply=0; usedHint=false; hadError=false; solved=false; sel=null; lastMove=null; hintSq=null; marks={}; errAtPly=null; calib=null;
   $('gradeRow').classList.add('hidden'); $('msg').className='msg';
   const premove = !!p.premove; firstUserPly=premove?1:0; lastTheme=p.theme||''; lastSide=premove?(pos.turn==='w'?'b':'w'):pos.turn; showCalib();
@@ -1014,7 +1074,7 @@ function finish(){
     arcadeRun.score+=pts; arcadeRun.solved++; arcadeRun.best=Math.max(arcadeRun.best,streak);
     if(pts) showPts('+'+pts); if(arcadeRun.score>arcadeBest() && arcadeBest()>0 && arcadeRun.score-pts<=arcadeBest()) toast('🏆 New record!');
     $('sub').textContent=Math.round(secs)+' s · '+(pts?'+'+pts+' points (×'+arcadeMult().toFixed(1)+')':'0 points – goes to the Blunder Pile'); renderHud(); }
-  if(mode==='arts' && cur){ artsFeedback(secs); { const inMini=!!mini; mgRecord(!hadError&&!usedHint, artsNet(cur,secs)); if(!inMini) mgStreak(!hadError); } renderHud(); }
+  if(mode==='arts' && cur){ artsFeedback(secs); { const inMini=!!mini; mgRecord(!hadError&&!usedHint, artsNet(cur,secs)); if(!inMini){ if(cur.src!=='master') mgStreak(!hadError); mtTick(); } } deckCheck(); renderHud(); }
   if(mode==='misses' && cur){ $('sub').textContent=Math.round(secs)+' s · '+(hadError?'stays in the Blunder Pile':usedHint?'with a hint – stays in the Blunder Pile':'out of the Blunder Pile ✓'); renderHud(); }
   if(mode==='wood'){ const w=prog.wood; woodDone(cur.id, secs, good); w.ok=(w.ok||0)+(good?1:0); w.secs=(w.secs||0)+secs; saveProg(); renderHud(); }
   let manual=false;
@@ -1038,7 +1098,7 @@ function finishAfterReveal(){
   $('btnAsk').disabled=false;
   const mode=$('mode').value; session.n++; streak=0;
   logEvent({ok:false, hint:false, secs:(now()-startT)/1000, err:'first', reveal:true});
-  if(cur){ addMiss(cur.id); if(mode==='arcade'){ arcRetryTick(); arcRetryAdd(cur.id); arcadeRun.seen.add(cur.id); arcadeRun.solved++; if((settings.arcadeOrder||'random')==='seq') seqAdvance(); renderHud(); } if(mode==='misses') renderHud(); if(mode==='arts'){ artsFeedback(0,true); { const inMini=!!mini; mgRecord(false, null); if(!inMini) mgStreak(false); } renderHud(); } }
+  if(cur){ addMiss(cur.id); if(mode==='arcade'){ arcRetryTick(); arcRetryAdd(cur.id); arcadeRun.seen.add(cur.id); arcadeRun.solved++; if((settings.arcadeOrder||'random')==='seq') seqAdvance(); renderHud(); } if(mode==='misses') renderHud(); if(mode==='arts'){ artsFeedback(0,true); { const inMini=!!mini; mgRecord(false, null); if(!inMini){ if(cur.src!=='master') mgStreak(false); mtTick(); } } deckCheck(); renderHud(); } }
   showReplay();
   if(mode==='sr'){ if(cur && (!prog.cards[cur.id]||prog.cards[cur.id].seen===0)){ const d=today(); prog.days[d]=prog.days[d]||{n:0,ok:0,new:0}; prog.days[d].new++; } review(cur.id,1,null,{err:errAtPly===null?'first':(errAtPly===firstUserPly?'first':'calc'),cal:calib}); }
   if(mode==='wood'){ woodDone(cur.id,null,false); review(cur.id,1,null,{err:'first',cal:calib}); }
@@ -1118,6 +1178,7 @@ function aiExport(full){
      '- Solved without error: '+pc(okAll.length,ev.length)+' · hint used: '+pc(ev.filter(e=>e.hint).length,ev.length)+' · solution revealed: '+pc(ev.filter(e=>e.reveal).length,ev.length),
      '- Median seconds per correct puzzle: '+med(okAll.map(e=>e.secs)),
      '- Rating of attempted puzzles: median '+med(ev.map(e=>e.rating).filter(Boolean))+', range '+(ev.length?Math.min(...ev.map(e=>e.rating||9999))+'–'+Math.max(...ev.map(e=>e.rating||0)):'')].join('\n'));
+  if(LEVELS) P('- Calibration and stacks: '+(prog.deck?'working on stack '+prog.deck.n+' ('+deckLeft()+' of '+prog.deck.ids.length+' left, started '+prog.deck.made+' at about '+prog.deck.R+')':'calibrating, 95% interval ± '+ciHalf())+'; stacks finished: '+((prog.decks||[]).map(d=>'#'+d.n+' '+d.size+' puzzles, '+d.made+' to '+d.done+', '+d.attempts+' attempts, '+d.stuck+' stuck, rating '+d.R0+' → '+d.R1).join('; ')||'none'));
   if(LEVELS) P('- Current puzzle rating in this trainer: '+plRating()+' (after '+(prog.ratingN||0)+' rated first attempts; new puzzles are drawn about 200 points below it)');
   P('\n## By mode'); P(table(['mode',...H],[...group(e=>e.mode)].map(([k,a])=>stat(k,a))));
   P('\n## By day (most recent 30 training days)'); P(table(['date',...H],[...group(e=>e.d)].slice(-30).map(([k,a])=>stat(k,a))));
