@@ -3,6 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<script>try{var l=localStorage.getItem('fc_lang'); if(l==='de'||(!l&&/^de/i.test(navigator.language||''))) location.replace('de.html'+location.hash);}catch(e){}</script>
+<link rel="alternate" hreflang="en" href="index.html">
+<link rel="alternate" hreflang="de" href="de.html">
 <title>Fade Chess – Master it. Move on.</title>
 <meta name="description" content="Train your chess. Understand your learning. A free chess tactics trainer where every puzzle you master fades from the stack.">
 <meta property="og:title" content="Fade Chess – Master it. Move on.">
@@ -130,11 +133,14 @@ button.b{transition:transform .1s,background .2s}button.b:active{transform:scale
 .modebar{background:linear-gradient(rgba(7,3,22,.3),rgba(7,3,22,.3)),url(cover.jpg) 50% 80%/cover;border-radius:12px;padding:10px;margin:0 0 10px;box-shadow:0 0 18px rgba(255,63,208,.35)}
 .modebar select{background:rgba(7,3,22,.74);color:#fff;border:1px solid #7df9ff}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.langsw{position:absolute;top:10px;right:10px;display:flex;gap:2px;padding:3px;border-radius:999px;background:rgba(7,3,22,.72);border:1px solid rgba(125,249,255,.6);box-shadow:0 0 12px rgba(255,63,208,.35);z-index:2}
+.langsw a{color:#cfefff;text-decoration:none;font:600 13px/1 system-ui,sans-serif;letter-spacing:.06em;padding:7px 11px;border-radius:999px}
+.langsw a.on{background:#7df9ff;color:#0a0420}
 </style>
 </head>
 <body>
 <div class="wrap">
-<div class="hero" id="hero"><img src="cover.jpg" width="842" height="1264" alt="Fade Chess. Master it. Move on. Train your chess. Understand your learning."><button class="b p" id="heroStart">Start training</button></div>
+<div class="hero" id="hero"><img src="cover.jpg" width="842" height="1264" alt="Fade Chess. Master it. Move on. Train your chess. Understand your learning."><div class="langsw" id="langSw"><a href="index.html" data-l="en" class="on">EN</a><a href="de.html" data-l="de">DE</a></div><button class="b p" id="heroStart">Start training</button></div>
 <header>
   <h1 class="sr">Fade Chess</h1>
   <div class="tabs">
@@ -339,7 +345,7 @@ zstdcat lichess_db_puzzle.csv.zst | awk -F, 'NR&gt;1 &amp;&amp; $4&gt;=1350 &amp
     <label class="l hidden" id="levelLbl">Your level (choosing one resets your puzzle rating)</label>
     <select id="levelSel" class="hidden"></select>
     <label class="l">Piece style</label>
-    <select id="pieceSet"><option value="cburnett">Classic</option><option value="papercut">Standard</option><option value="kosal">Rounded</option><option value="chessnut">Modern</option><option value="fantasy">Fantasy</option><option value="fade">Fade (neon)</option></select>
+    <select id="pieceSet"><option value="cburnett">Classic</option><option value="papercut">Standard</option><option value="kosal">Rounded</option><option value="chessnut">Modern</option><option value="fantasy">Fantasy</option><option value="fade">Fade (Neon)</option></select>
     <div class="row"><button class="b p" id="saveSettings">Save</button></div>
   </div>
   <div class="panel" style="margin-top:10px">
@@ -516,7 +522,7 @@ const MISS_NEED=3;
 function addMiss(id){ const m=prog.misses[id]||{n:0,last:''}; m.n++; m.last=today(); m.ok=0; m.okDay=''; m.done=false; m.t=Date.now(); prog.misses[id]=m; saveProg(); }
 function clearMiss(id){ const m=prog.misses[id]; if(m&&!m.done){ m.done=true; m.t=Date.now(); saveProg(); } }
 function missOk(id){ const m=prog.misses[id]; if(!m||m.done||m.okDay===today()) return null; m.ok=(m.ok||0)+1; m.okDay=today(); m.t=Date.now(); if(m.ok>=MISS_NEED) m.done=true; saveProg(); return m; }
-// Systemsprenger: von Bernd selbst als besonders schwer markiert. Verlassen den Stapel nur per Hand.
+// Systemsprenger: vom Spieler selbst als besonders schwer markiert. Verlassen den Stapel nur per Hand.
 prog.sprenger = prog.sprenger || {};
 function isSpr(id){ const s=prog.sprenger[id]; return !!(s&&s.on); }
 function toggleSpr(id){ const on=!isSpr(id); prog.sprenger[id]={on, t:Date.now(), added:on?today():((prog.sprenger[id]||{}).added||'')}; saveProg(); return on; }
@@ -1367,6 +1373,7 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
   if(seen) h.classList.add('slim');
   document.getElementById('heroStart').onclick=function(ev){ ev.stopPropagation(); try{ localStorage.setItem('fc_started','1'); }catch(e){} h.classList.add('slim'); window.scrollTo({top:0,behavior:'smooth'}); };
   h.onclick=function(){ h.classList.toggle('slim'); };
+  var sw=document.getElementById('langSw'); if(sw) sw.querySelectorAll('a').forEach(function(a){ a.onclick=function(ev){ ev.stopPropagation(); try{ localStorage.setItem('fc_lang', a.dataset.l); }catch(e){} }; });
 })();
 </script>
 <script>
