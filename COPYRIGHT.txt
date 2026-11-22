@@ -9,6 +9,7 @@ Contact: brndmrqdt@icloud.com
 Third-party material keeps its own licence and is not covered by the notice
 above:
 - Puzzles: Lichess puzzle database, CC0
+- Piece set Classic (Cburnett): BSD licence
 - Piece sets Papercut and Kosal: CC BY 4.0
 - Piece set Chessnut: Apache License 2.0
 - Piece set Fantasy: MIT License
