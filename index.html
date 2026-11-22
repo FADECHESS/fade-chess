@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Fade Chess – Master it. Move on.</title>
+<meta name="description" content="Train your chess. Understand your learning. A free chess tactics trainer where every puzzle you master fades from the stack.">
+<meta property="og:title" content="Fade Chess – Master it. Move on.">
+<meta property="og:description" content="Train your chess. Understand your learning.">
+<meta property="og:image" content="cover.jpg">
+<style>
+:root{--bg:#15171a;--panel:#1f2226;--panel2:#272b30;--text:#e8e6e1;--muted:#9a9890;--light:#ffffdd;--dark:#86a666;--acc:#d8a24a;--ok:#5fb979;--bad:#d9534f;--sel:rgba(20,85,30,.5);--dot:rgba(0,0,0,.28);--last:rgba(155,199,0,.41);--hint:rgba(90,190,255,.6)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:900px;margin:0 auto;padding:12px}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;letter-spacing:.3px}
+.tabs{display:flex;gap:4px;background:var(--panel);border-radius:10px;padding:3px}
+.tabs button{background:transparent;border:0;color:var(--muted);padding:6px 10px;border-radius:8px;font-size:13px;cursor:pointer}
+.tabs button.on{background:var(--panel2);color:var(--text)}
+.layout{display:grid;grid-template-columns:1fr;gap:12px}
+.layout>div{min-width:0}
+body{overflow-x:hidden}
+@media(min-width:760px){.layout{grid-template-columns:minmax(0,480px) 1fr;align-items:start}}
+.boardwrap{position:relative;width:100%;max-width:480px;margin:0 auto;user-select:none}
+.board{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);aspect-ratio:1/1;width:100%;border-radius:6px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.45)}
+.sq{position:relative;aspect-ratio:1/1;min-width:0;min-height:0;overflow:hidden}
+.sq.l{background:var(--light)}.sq.d{background:var(--dark)}
+.sq.sel{box-shadow:inset 0 0 0 100px var(--sel)}
+.sq.last{box-shadow:inset 0 0 0 100px var(--last)}
+.sq.hint{box-shadow:inset 0 0 0 4px var(--hint)}
+.sq.bad{box-shadow:inset 0 0 0 100px rgba(217,83,79,.55)}
+.sq.good{box-shadow:inset 0 0 0 100px rgba(95,185,121,.5)}
+.sq .dot{position:absolute;left:37%;top:37%;width:26%;height:26%;border-radius:50%;background:var(--dot)}
+.sq .cap{position:absolute;inset:0;border:6px solid var(--dot);border-radius:50%;opacity:.9}
+.sq svg{position:absolute;inset:8%;width:84%;height:84%;pointer-events:none}
+.sq .coord{position:absolute;font-size:10px;font-weight:600;opacity:.55;pointer-events:none}
+.sq .cf{bottom:1px;right:3px}.sq .cr{top:1px;left:3px}
+.sq.l .coord{color:var(--dark)}.sq.d .coord{color:var(--light)}
+body.brown{--light:#f0d9b5;--dark:#b58863}
+body.neon{--light:#b4e9ff;--dark:#2a86ff;--sel:rgba(255,63,208,.5);--last:rgba(255,227,107,.55);--hint:rgba(255,255,255,.9)}
+body.neon #board{box-shadow:0 0 0 2px #7df9ff,0 0 26px rgba(63,208,255,.7)}
+body.neon .sq svg,body.neon .fly svg{filter:drop-shadow(0 1px 1.5px rgba(0,20,70,.6))}
+.board.shake{animation:shake .35s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.panel{background:var(--panel);border-radius:12px;padding:12px}
+.status{display:flex;align-items:center;gap:10px;min-height:44px}
+.turnbox{width:18px;height:18px;border-radius:4px;border:2px solid #777;flex:none}
+.turnbox.w{background:#f4f1ea}.turnbox.b{background:#222}
+.status .msg{font-weight:600}
+.status .sub{color:var(--muted);font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+button.b{background:var(--panel2);color:var(--text);border:0;border-radius:9px;padding:9px 14px;font-size:14px;cursor:pointer}
+button.b.p{background:var(--acc);color:#1b1708;font-weight:600}
+button.b:disabled{opacity:.4}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.stat{background:var(--panel2);border-radius:9px;padding:8px 10px}
+.stat b{display:block;font-size:20px}.stat span{font-size:12px;color:var(--muted)}
+.meta{color:var(--muted);font-size:13px;margin-top:8px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.hidden{display:none !important}
+h2{font-size:15px;margin:0 0 8px}
+textarea,input[type=text],select,input[type=number]{width:100%;background:var(--panel2);color:var(--text);border:1px solid #3a3f45;border-radius:8px;padding:8px;font-size:14px}
+textarea{min-height:90px;font-family:ui-monospace,Menlo,monospace;font-size:12px}
+label.l{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.list{max-height:360px;overflow:auto;border-radius:8px}
+.list div{display:flex;justify-content:space-between;gap:8px;padding:6px 8px;border-bottom:1px solid #2e3237;font-size:13px}
+.list div span:last-child{color:var(--muted);white-space:nowrap}
+.pill{display:inline-block;background:var(--panel2);border-radius:999px;padding:2px 8px;font-size:12px;color:var(--muted);margin-right:4px}
+.pill.ok{color:var(--ok)}.pill.bad{color:var(--bad)}
+.note{font-size:12px;color:var(--muted);margin-top:6px}
+.modebar{grid-column:1/-1;margin:-4px 0 6px}
+.modebar select{width:100%;font-size:15px;font-weight:600;padding:10px 12px}
+.study{margin-top:8px;background:var(--panel);border-radius:10px;padding:10px 12px;min-width:0;max-width:100%;overflow:hidden}
+.study select{min-width:0;max-width:100%;text-overflow:ellipsis}
+.studyHead{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}
+.tree{margin-top:8px;max-height:260px;overflow:auto;max-width:100%;font-size:13px;line-height:1.7;font-variant-numeric:tabular-nums;background:var(--panel2);border-radius:8px;padding:6px 8px}
+.tree .tn{white-space:nowrap}
+.tree .mv{cursor:pointer;padding:1px 5px;border-radius:5px}
+.tree .mv:hover{background:var(--acc);color:#000}
+.tree .mv.cur{background:var(--acc);color:#000;font-weight:700}
+.tree .br{color:var(--muted);font-size:11px;margin-left:4px}
+.studySum{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4}
+.studySum b{color:var(--fg)}
+.studyNote{margin-top:8px;font-size:14px;line-height:1.45;min-height:40px;border-left:3px solid var(--acc);padding-left:10px}
+.replay{display:flex;align-items:center;gap:6px;margin-top:6px}
+.replay span{flex:1;text-align:center;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.replay .b{padding:6px 10px;min-width:40px}
+.seqbar{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px}
+.seqbar select{flex:1}
+.hud{margin-top:10px;padding-top:8px;border-top:1px dashed #3a3f45}
+.pts{position:absolute;right:10px;top:10px;font-size:22px;font-weight:800;color:#ffd166;text-shadow:0 2px 8px rgba(0,0,0,.6);opacity:0;pointer-events:none;z-index:10}
+.pts.on{animation:pts 1s ease-out forwards}
+@keyframes pts{0%{opacity:0;transform:translateY(10px)}20%{opacity:1}100%{opacity:0;transform:translateY(-30px)}}
+.grade{display:flex;gap:6px;margin-top:10px}
+.grade button{flex:1}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#333;color:#fff;padding:8px 14px;border-radius:9px;font-size:13px;opacity:0;transition:.3s;pointer-events:none}
+.toast.on{opacity:1}
+.bar{height:6px;background:var(--panel2);border-radius:4px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--acc)}
+.promo{position:absolute;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;gap:8px;border-radius:6px}
+.promo button{width:60px;height:60px;background:#eee;border:0;border-radius:8px}
+.promo svg{width:80%;height:80%}
+
+.boardwrap{overflow:visible}
+.board{transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.board.pulse{animation:pulse .5s}
+@keyframes pulse{0%{transform:scale(1)}30%{transform:scale(1.025)}100%{transform:scale(1)}}
+.fly{position:absolute;pointer-events:none;z-index:5;transition:transform .22s cubic-bezier(.3,.9,.3,1)}
+.fly svg{width:84%;height:84%;position:absolute;inset:8%}
+.sq svg{transition:opacity .15s}
+.sq.ghost svg{opacity:0}
+.sq.sel,.sq.good,.sq.bad,.sq.hint{transition:box-shadow .15s}
+#fx{position:absolute;inset:-20%;width:140%;height:140%;pointer-events:none;z-index:9}
+.msg{transition:color .2s}
+.msg.ok{color:var(--ok)}.msg.err{color:var(--bad)}
+.combo{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) scale(.6);font-size:42px;white-space:nowrap;max-width:96%;overflow:visible;font-weight:800;color:#fff;text-shadow:0 2px 12px rgba(0,0,0,.6),0 0 24px var(--acc);opacity:0;pointer-events:none;z-index:10;letter-spacing:1px}
+.combo.on{animation:combo var(--dur,1.4s) ease-out forwards}
+.combo.gold{background:linear-gradient(90deg,#ffd166,#fff3b0,#ffd166);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;filter:drop-shadow(0 2px 10px rgba(255,209,102,.8))}
+@keyframes shakeSoft{0%,100%{transform:translate(0,0)}20%{transform:translate(-3px,2px)}40%{transform:translate(3px,-2px)}60%{transform:translate(-2px,-2px)}80%{transform:translate(2px,2px)}}
+.shakeSoft{animation:shakeSoft .6s ease-in-out}
+@keyframes combo{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}12%{opacity:1;transform:translate(-50%,-50%) scale(1.25)}25%{transform:translate(-50%,-50%) scale(1)}75%{opacity:1;transform:translate(-50%,-55%) scale(1.05)}100%{opacity:0;transform:translate(-50%,-80%) scale(1.1)}}
+.panel{transition:box-shadow .3s}
+.panel.glow{box-shadow:0 0 0 2px var(--ok),0 0 30px rgba(95,185,121,.35)}
+button.b{transition:transform .1s,background .2s}button.b:active{transform:scale(.96)}
+.hero{position:relative;max-width:560px;margin:-12px auto 12px;cursor:pointer}
+.hero img{display:block;width:100%;height:auto;border-radius:0 0 14px 14px}
+.hero button{position:absolute;left:50%;bottom:21%;transform:translateX(-50%);font-size:17px;padding:12px 26px;box-shadow:0 0 24px rgba(0,0,0,.6)}
+.hero.slim img{height:150px;object-fit:cover;object-position:50% 3%}
+.hero.slim button{display:none}
+.modebar{background:linear-gradient(rgba(7,3,22,.3),rgba(7,3,22,.3)),url(cover.jpg) 50% 80%/cover;border-radius:12px;padding:10px;margin:0 0 10px;box-shadow:0 0 18px rgba(255,63,208,.35)}
+.modebar select{background:rgba(7,3,22,.74);color:#fff;border:1px solid #7df9ff}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+<div class="hero" id="hero"><img src="cover.jpg" width="842" height="1264" alt="Fade Chess. Master it. Move on. Train your chess. Understand your learning."><button class="b p" id="heroStart">Start training</button></div>
+<header>
+  <h1 class="sr">Fade Chess</h1>
+  <div class="tabs">
+    <button class="on" data-tab="train">Training</button>
+    <button data-tab="stats">Stats</button>
+    <button data-tab="sets">Puzzles</button>
+    <button data-tab="settings">Settings</button>
+  </div>
+</header>
+
+<div id="tab-train" class="layout">
+  <div class="modebar"><select id="mode">
+        <option value="sr">Spaced Repetition (due first, then new)</option>
+        <option value="wood">Cycles (whole set in order, timed)</option>
+        <option value="random">Random (unscored)</option>
+        <option value="arcade">🕹️ Arcade (points, combo, high score – endless)</option>
+        <option value="arts">🧠 Adaptive (speed + mistakes drive repetition)</option>
+        <option value="misses">🧺 Blunder Pile (only puzzles you got wrong)</option>
+        <option value="wow">🤯 Mind-Blowing (your favourite puzzles)</option>
+        <option value="sprenger">💣 Brain Breakers (your hardest puzzles)</option>
+      </select></div>
+  <div>
+    <div class="panel hidden" id="levelBox" style="margin-bottom:10px"><h2>Choose your starting level</h2><p class="note">Pick the one closest to you. Your rating adjusts after every puzzle, so you can't choose wrong.</p><div id="levelBtns" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"></div></div>
+    <div class="boardwrap">
+      <div class="board" id="board"></div>
+      <div id="promo" class="promo hidden"></div>
+      <canvas id="fx"></canvas>
+      <div class="combo" id="combo"></div><div class="pts" id="pts"></div>
+    </div>
+    <div class="meta" id="meta"></div>
+    <div class="note hidden" id="levelInfo" style="margin-top:4px"></div>
+    <div class="study hidden" id="studyPanel">
+      <div class="studyHead"><b id="stTitle"></b><span class="note" id="stPhase"></span></div>
+      <div class="row" style="margin-top:6px"><select id="stSet" style="flex:1"></select><button class="b" id="stTree">Baum</button></div>
+      <div class="row" style="margin-top:6px"><select id="stLines" style="flex:1"></select></div>
+      <div class="tree hidden" id="stTreeBox"></div>
+      <div class="studySum" id="stSum"></div>
+      <div class="studyNote" id="stNote"></div>
+      <div class="row" style="margin-top:8px"><button class="b p" id="stStep">▶ Nächster Zug</button><button class="b" id="stRecall">Selbst spielen</button><button class="b" id="stNextLine">Nächste Linie →</button></div>
+    </div>
+    <div class="replay hidden" id="replay">
+      <button class="b" id="rpStart" title="Start">⏮</button><button class="b" id="rpBack">◀</button>
+      <span id="rpInfo"></span>
+      <button class="b" id="rpFwd">▶</button><button class="b" id="rpEnd" title="End">⏭</button>
+    </div>
+  </div>
+  <div>
+    <div class="panel">
+      <div class="status"><div class="turnbox" id="turnbox"></div><div><div class="msg" id="msg">…</div><div class="sub" id="sub"></div></div></div>
+      <div class="row hidden" id="calibRow"><span class="note" style="flex:1;margin:0">How sure are you?</span><button class="b" data-cal="sure">Sure</button><button class="b" data-cal="unsure">Unsure</button></div>
+      <div class="row">
+        <button class="b" id="btnHint">Hint</button>
+        <button class="b" id="btnSolution">Solution</button>
+        <button class="b" id="btnRetry">Retry</button>
+        <button class="b" id="btnMiss" title="Put this puzzle in the Blunder Pile">🧺 +</button>
+        <button class="b" id="btnSpr" title="Mark as Brain Breaker (especially hard for you)">💣 +</button>
+        <button class="b" id="btnWow" title="Mark as Mind-Blowing (especially beautiful or surprising)">🤯 +</button>
+        <button class="b" id="btnAsk" title="After solving: copy the position and solution to ask an AI for an explanation">🤖 Ask AI</button>
+        <button class="b p" id="btnNext">Next →</button>
+      </div>
+      <div class="grade hidden" id="gradeRow">
+        <button class="b" data-q="1">Forgot</button>
+        <button class="b" data-q="3">Hard</button>
+        <button class="b" data-q="4">Good</button>
+        <button class="b p" data-q="5">Easy</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><b id="sDue">0</b><span>due</span></div>
+        <div class="stat"><b id="sNew">0</b><span>new today</span></div>
+        <div class="stat"><b id="sSession">0/0</b><span>session correct</span></div>
+      </div>
+      <div class="bar"><i id="bar" style="width:0%"></i></div>
+      <div class="hud hidden" id="arcadeHud">
+        <div class="stats">
+          <div class="stat"><b id="aScore">0</b><span>Points</span></div>
+          <div class="stat"><b id="aMult">×1.0</b><span>Combo</span></div>
+          <div class="stat"><b id="aBest">0</b><span>Best</span></div>
+        </div>
+        <div class="seqbar"><select id="aOrder"><option value="random">Order: random</option><option value="seq">Order: sequential (position is remembered)</option></select><button class="b" id="aReset" title="Reset the sequence position to 1">↺</button></div>
+        <div class="row" style="margin-top:8px"><span class="note" id="aInfo" style="flex:1"></span><button class="b" id="aEnd">End run &amp; save</button></div>
+      </div>
+      <textarea id="askBox" class="hidden" readonly style="margin-top:8px;min-height:140px"></textarea>
+      <div class="hud hidden" id="artsHud"><div class="note" id="artsInfo"></div>
+        <div class="seqbar hidden" id="mgBar" style="margin-top:8px"><span class="note" id="mgNow" style="flex:1"></span><select id="mgSel" class="hidden"></select><button class="b" id="mgStart">✕ Cancel</button></div>
+        <div class="note" id="mgInfo"></div></div>
+      <div class="hud hidden" id="missHud"><div class="note" id="missInfo"></div></div>
+      <div class="hud hidden" id="woodHud"><div class="bar" style="margin-top:0"><i id="woodBar" style="width:0%"></i></div><div class="note" id="woodInfo"></div></div>
+    </div>
+    <div class="panel" style="margin-top:10px">
+      <h2>Mode</h2>
+      <div class="note">Change mode with the menu above the board.</div>
+      <div class="note" id="modeNote"></div>
+    </div>
+  </div>
+</div>
+
+<div id="tab-stats" class="hidden">
+  <div class="panel">
+    <h2>Overview</h2>
+    <div class="stats">
+      <div class="stat"><b id="tTotal">0</b><span>Puzzles in set</span></div>
+      <div class="stat"><b id="tSeen">0</b><span>seen</span></div>
+      <div class="stat"><b id="tMature">0</b><span>mature (interval ≥ 21 d)</span></div>
+      <div class="stat"><b id="tAcc">0%</b><span>Overall accuracy</span></div>
+      <div class="stat"><b id="tStreak">0</b><span>Day streak</span></div>
+      <div class="stat"><b id="tAvg">–</b><span>Avg solve time (s)</span></div>
+    </div>
+    <h2 style="margin-top:14px">Ask an AI</h2>
+    <p class="note">Creates a text summary of your training. Paste it into an AI chat and ask questions, e.g. "Where are my weaknesses?"</p>
+    <div class="row"><button class="b" id="aiCopy">📋 Copy summary</button><button class="b" id="aiCopyFull">📋 With full log</button><button class="b" id="aiSave">⬇ As a file</button></div>
+    <textarea id="aiBox" class="hidden" readonly style="margin-top:8px;min-height:160px"></textarea>
+    <div class="note" id="aiInfo"></div>
+    <h2 style="margin-top:14px">Training diary (last 30 days) <button class="b" id="csvBtn" style="float:right;padding:4px 10px;font-size:12px">CSV export</button></h2>
+    <div class="list" id="diaryList"></div>
+    <h2 style="margin-top:14px">Cycle progress</h2>
+    <div class="list" id="woodDaily"></div>
+    <div class="note" id="woodCompare"></div>
+    <h2 style="margin-top:14px">By theme</h2>
+    <div class="list" id="themeList"></div>
+    <h2 style="margin-top:14px">Completed cycles</h2>
+    <div class="list" id="woodList"></div>
+    <h2 style="margin-top:14px">Error types</h2>
+    <div class="list" id="errList"></div>
+    <h2 style="margin-top:14px">Calibration</h2>
+    <div class="list" id="calList"></div>
+    <h2 style="margin-top:14px">Arcade runs</h2>
+    <div class="list" id="arcadeList"></div>
+    <div class="list" id="arcadeDetail" style="margin-top:6px"></div>
+    <h2 style="margin-top:14px">Blunder Pile <span class="note" id="missCount"></span></h2>
+    <div class="list" id="missList"></div>
+    <h2 style="margin-top:14px">Hardest puzzles</h2>
+    <div class="list" id="hardList"></div>
+  </div>
+</div>
+
+<div id="tab-sets" class="hidden">
+  <div class="panel">
+    <h2>Puzzle set</h2>
+    <div class="meta"><span id="setInfo"></span></div>
+    <label class="l">Filter: set</label>
+    <select id="fSet"><option value="">all</option></select>
+    <label class="l">Filter: theme</label>
+    <select id="fTheme"><option value="">all</option></select>
+    <label class="l">Rating range</label>
+    <div class="row" style="margin-top:0"><input type="number" id="fMin" placeholder="min" style="flex:1"><input type="number" id="fMax" placeholder="max" style="flex:1"></div>
+    <div class="row"><button class="b p" id="applyFilter">Apply filter</button></div>
+  </div>
+  <div class="panel" style="margin-top:10px">
+    <h2>Import puzzles</h2>
+    <p class="note">Three formats, detected automatically:<br>
+    • <b>PGN</b> (e.g. a Lichess study export): each game with a <code>[FEN]</code> header; theme and rating are read from the chapter name or a comment (e.g. "mateIn1 … rating 1297").<br>
+    • <b>Lichess puzzle CSV</b> (PuzzleId,FEN,Moves,Rating,…,Themes).<br>
+    • <b>Simple</b>: <code>FEN;moves in UCI;theme;rating</code> per line.</p>
+    <label style="font-size:13px;display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="premoveBox"> The first move is the opponent's move (always on for Lichess CSV; for PGN it depends on the export)</label>
+    <input type="file" id="file" accept=".csv,.txt,.pgn" style="margin-top:8px">
+    <label class="l">…or paste</label>
+    <textarea id="pasteBox" placeholder="PGN, CSV or FEN;moves;theme;rating"></textarea>
+    <div class="row">
+      <button class="b p" id="importBtn">Import</button>
+      <button class="b" id="replaceBtn">Replace set</button>
+      <button class="b hidden" id="resetSetBtn">Restore starter set (300)</button>
+    </div>
+    <div class="row hidden"><button class="b" id="jobavaBtn">♘ Jobava-Theorielinien (15, kommentiert)</button></div>
+    <div class="row hidden"><button class="b" id="jobexBtn">♘ Jobava – Explorer-Linien laden (38, Lichess-Statistik)</button></div>
+    <p class="note hidden">Alle Sets sind dauerhaft geladen (Startset, Jobava-Linien, Explorer-Linien, Schwarz-Repertoire, Cycles Set 1) – die Buttons stellen ein Set nur wieder her, falls es gelöscht wurde.</p>
+    <div class="row hidden"><button class="b" id="wpBtn">Cycles Set 1 (1024, 16 Studies, 1200–1550)</button></div>
+    <p class="note hidden">Dein Lichess-Set aus <code>cycles/sets/set1</code>, in Study-Reihenfolge (01 leicht → 16 schwer). Für Zyklen: Filter „Set: WP Set1“ setzen und Modus Cycles wählen.</p>
+    <div class="row hidden"><button class="b" id="caroBtn">♞ Schwarz: Caro-Kann + Antworten auf 1.d4 laden (38, Lichess-Statistik)</button></div>
+    <p class="note hidden">Eröffnungsdrill: Du spielst Weiß ab 3.Lf4, die App antwortet als Schwarz (…g6/…Lg7-Aufbau). Zum reinen Eröffnungstraining oben den Filter „Thema: Jobava-KID“ setzen.</p>
+    <details class="hidden" style="margin-top:10px"><summary class="note" style="cursor:pointer">300 Puzzles (1350–1450) aus der Lichess-Datenbank ziehen – Terminal auf dem Mac</summary>
+    <pre style="font-size:11px;white-space:pre-wrap;background:var(--panel2);padding:8px;border-radius:8px">brew install zstd
+curl -L -o lichess_db_puzzle.csv.zst https://database.lichess.org/lichess_db_puzzle.csv.zst
+zstdcat lichess_db_puzzle.csv.zst | awk -F, 'NR&gt;1 &amp;&amp; $4&gt;=1350 &amp;&amp; $4&lt;=1450' | shuf -n 300 &gt; set_1350_1450.csv</pre>
+    <p class="note">Die Datei dann hier über „Datei wählen“ laden (Gegnerzug-Häkchen wird für CSV automatisch gesetzt). Für nur Mattaufgaben: <code>grep -i mateIn</code> vor dem <code>shuf</code> einfügen.</p></details>
+    <div class="note" id="importNote"></div>
+  </div>
+</div>
+
+<div id="tab-settings" class="hidden">
+  <div class="panel">
+    <h2>Spaced Repetition</h2>
+    <label class="l">New puzzles per day</label><input type="number" id="newPerDay" min="0" max="200">
+    <label class="l">Time threshold for "Easy" (seconds; also the base target in Adaptive mode)</label><input type="number" id="fastSec" min="3" max="120">
+    <label class="l">Target retention (FSRS) – share of reviews you should still get right</label>
+    <select id="retention"><option value="0.75">75% – long intervals, few reviews</option><option value="0.8">80%</option><option value="0.85">85% – recommended for tactics</option><option value="0.9">90%</option><option value="0.95">95% – very short intervals</option></select>
+    <label class="l">Calibration (ask "Sure / Unsure" before the first move)</label>
+    <select id="calib"><option value="0">off</option><option value="1">on (SR and Cycles)</option></select>
+    <label class="l">Cycles: cycle plan in days (C1,C2,C3 …)</label><input type="text" id="woodPlan" placeholder="28,14,7,4,2,1">
+    <label class="l">Cycles: minimum daily goal (floor for the adaptive goal = remaining ÷ days left)</label><input type="number" id="woodDaily" min="0" max="2000">
+    <label class="l">Cycles: cycle start (date; changing it moves the planned end)</label><input type="date" id="woodStart">
+    <label class="l">Cycles: repeat yesterday's slowest puzzles</label><input type="number" id="woodSlow" min="0" max="100">
+    <label class="l">Grading</label>
+    <select id="autoGrade"><option value="auto">automatic (time/hint/mistakes)</option><option value="manual">manual after each puzzle</option></select>
+    <label class="l">Board</label>
+    <select id="coords"><option value="1">Show coordinates</option><option value="0">No coordinates</option></select>
+    <label class="l">After solving</label>
+    <select id="autoNext"><option value="1">continue automatically</option><option value="0">wait for "Next"</option></select>
+    <label class="l">Effects</label>
+    <select id="fxOn"><option value="1">Fireworks + sounds</option><option value="2">Fireworks only</option><option value="0">off</option></select>
+    <label class="l">Board colours</label>
+    <select id="theme"><option value="green">Green</option><option value="brown">Brown</option><option value="neon">Neon blue</option></select>
+    <label class="l hidden" id="levelLbl">Your level (choosing one resets your puzzle rating)</label>
+    <select id="levelSel" class="hidden"></select>
+    <label class="l">Piece style</label>
+    <select id="pieceSet"><option value="fade">Fade</option><option value="papercut">Standard</option><option value="kosal">Classic</option><option value="chessnut">Modern</option><option value="fantasy">Fantasy</option></select>
+    <div class="row"><button class="b p" id="saveSettings">Save</button></div>
+  </div>
+  <div class="panel" style="margin-top:10px">
+    <h2>Back up progress</h2>
+    <p class="note" id="cloudInfo">Progress is saved on this device.</p>
+    <div class="row"><button class="b hidden" id="cloudSyncBtn">Jetzt synchronisieren</button></div>
+    <p class="note">Your progress is stored in this browser, on this device only. Use Export to back it up or to move it to another device. Clearing the browser's data for this site deletes it.</p>
+    <div class="row"><button class="b" id="exportBtn">Export</button><button class="b" id="copyBtn">Copy to clipboard</button><button class="b" id="importProgBtn">Import progress</button><button class="b" id="wipeBtn" style="color:var(--bad)">Delete progress</button></div>
+    <textarea id="progBox" style="margin-top:8px"></textarea>
+  </div>
+</div>
+</div>
+<p class="note" style="text-align:center;margin:18px 0 8px"><a href="credits.html" style="color:var(--muted)">Credits &amp; licences</a> · <a href="privacy.html" style="color:var(--muted)">Privacy</a> · <a href="imprint.html" style="color:var(--muted)">Imprint</a></p>
+<div class="toast" id="toast"></div>
+
+<script>
+// ---------- built-in puzzle set (engine-verified mates) ----------
+const BUILTIN = [];
+
+// ---------- pieces (simple original SVG silhouettes) ----------
+const P = {
+ k:'<path d="M22.5 4v7M19 7.5h7" fill="none" stroke-width="2.4" class="cross"/><path d="M22.5 11c-3.5 0-6 2.5-6 5.8 0 1.6.6 3 1.6 4.1C13 19 9.5 22.5 9.5 27c0 3.5 2.5 5.5 6 5.5h14c3.5 0 6-2 6-5.5 0-4.5-3.5-8-8.6-6.1 1-1.1 1.6-2.5 1.6-4.1 0-3.3-2.5-5.8-6-5.8z"/><path d="M13 32.5h19v3H13z"/><path d="M11 35.5h23v4H11z"/><path d="M15 24.5c3-1.2 12-1.2 15 0" fill="none" class="cut"/>',
+ q:'<circle cx="9" cy="13" r="2.3"/><circle cx="15.5" cy="9.5" r="2.3"/><circle cx="22.5" cy="8" r="2.3"/><circle cx="29.5" cy="9.5" r="2.3"/><circle cx="36" cy="13" r="2.3"/><path d="M9.5 15.5L13 28h19l3.5-12.5L29 24l-6.5-13.5L16 24z"/><path d="M12.5 28h20v3h-20z"/><path d="M11 31.5h23v4.5H11z"/><path d="M13.5 26.5c3-1 15-1 18 0" fill="none" class="cut"/>',
+ r:'<path d="M12 8h4v4h4V8h5v4h4V8h4v7H12z"/><path d="M14 15h17l-2 3H16z"/><path d="M16 18h13v13H16z"/><path d="M13 31h19v3.5H13z"/><path d="M11 34.5h23v4.5H11z"/><path d="M16 18h13M16 31h13" fill="none" class="cut"/>',
+ b:'<circle cx="22.5" cy="7" r="2.6"/><path d="M22.5 10c-5 3-8 8-8 13 0 3 1.5 5 4 6.5h8c2.5-1.5 4-3.5 4-6.5 0-5-3-10-8-13z"/><path d="M22.5 15v8M19 19h7" fill="none" stroke-width="1.8" class="cut"/><path d="M15 29.5h15v3H15z"/><path d="M12 32.5h21v5H12z"/>',
+ n:'<path d="M11.5 35c0-7 2-12 5.5-15.5L12 21.5c-2.5 0-4-2.5-2.5-4.5l4-3L16 10.5l1.5-4.5 3.5 3.5 3-3.5 1 4.5C30.5 12 33.5 18 33.5 26l.5 9z"/><circle cx="20.3" cy="13.3" r="1.3" class="eye"/><circle cx="11.3" cy="18.8" r=".9" class="eye"/><path d="M12 21.5c1-.8 2.3-1.3 3.5-1.5" fill="none" class="cut"/><path d="M25.5 11c3 3.5 4.5 9 4.5 16" fill="none" class="cut"/><path d="M17 19.5c2 .5 4-.5 5-2.5" fill="none" class="cut"/><path d="M11 35h23v4.5H11z"/>',
+ p:'<circle cx="22.5" cy="11" r="4.3"/><path d="M17 16.3h11v2.6H17z"/><path d="M19.5 18.9C19 23.5 16.8 27.5 15 31h15c-1.8-3.5-4-7.5-4.5-12.1z"/><path d="M12.5 31h20v3.5h-20z"/><path d="M11 34.5h23v4.5H11z"/>'
+};
+const PIECE_SET={"wK": "<polygon style=\"fill:#FFFFFF;\" points=\"31,23 31,17.5 39.6,18.6 37.8,10.8 43.2,10.8 41.4,18.6 50,17.5 50,23 41.3,20.4 44.7,33.2 40.5,39.2 36.3,33.2 39.7,20.4 \"/> <path style=\"fill:#FFFFFF;\" d=\"M19,69.8v-5.9c13.3-3.1,29.6-3.1,42.9,0v5.9H19z\"/> <path style=\"fill:#FFFFFF;\" d=\"M62.4,61.2L62.4,61.2c-13.7-3-30.1-3-43.6,0.1l-0.1-0.1c-7.2-6-10.5-12.1-10.5-19.8C8.2,33,14.9,28,21.4,28 c5.8,0,9.8,1.9,12.7,6l6.5,9.4l6.5-9.4c2.9-4.1,6.9-6,12.7-6C66.3,28,73,33,73,41.4C72.9,49.2,69.6,55.3,62.4,61.2z\"/> <g> <path style=\"fill:#CFCECF;\" d=\"M19,61.9l-0.4-0.3c7-1.6,14.7-2.4,21.9-2.4V42.7l-6.2-8.2c0-0.1-0.1-0.1-0.2-0.2c-0.6,5.2-2.8,11.5-5.7,15.9 C25,55.5,19.4,59.9,18,61c0.1,0.1,0.2,1,0.3,1.1L19,61.9C19,62,19,61.9,19,61.9z\"/> <path style=\"fill:#CFCECF;\" d=\"M46.6,59.8L63,62.5v-0.7l0.5-0.4c7.4-5.9,10.7-12,10.7-19.6c0-5.4-2.9-9.4-6.7-11.5 C70.5,42.9,57.9,58.6,46.6,59.8z\"/> <polygon style=\"fill:#CFCECF;\" points=\"53.1,69.8 61.8,69.8 61.8,62.4 53.1,60.6 \"/> <polygon style=\"fill:#CFCECF;\" points=\"50.5,16.6 48.2,20.5 41.1,20.3 49.5,23.6 50.5,23.6 \"/> <polygon style=\"fill:#CFCECF;\" points=\"43.1,11.3 40.5,13 40.5,19.2 42.1,18.2 \"/> <polygon style=\"fill:#CFCECF;\" points=\"41.8,21.5 41.8,33.2 40.5,40.2 45,34 \"/> <polygon style=\"fill:#CFCECF;\" points=\"39.7,20.4 30.5,20.6 30.5,24.2 \"/> </g> <polygon points=\"36.4,51.2 40.5,57.2 44.6,51.2 40.5,45.2 \"/> <path d=\"M59.7,25.6c-5.8,0-10.3,1.8-13.5,5.5l-2.1-7.8l7.8,2.4V15.2l-8,1l1.7-7.5H35.3l1.7,7.5l-8-1v10.4l7.8-2.4L34.7,31 c-3.2-3.7-7.7-5.5-13.5-5.5c-7.7,0-15.7,5.9-15.7,15.9c0,8.4,3.4,15,10.9,21.3v9.4h47.9v-9.4c7.5-6.4,10.9-13,10.9-21.3 C75.4,31.5,67.4,25.6,59.7,25.6z M31,23v-5.5l8.6,1.1l-1.8-7.8h5.4l-1.8,7.8l8.6-1.1V23l-8.7-2.6l3.4,12.8l-4.2,6l-4.2-6l3.4-12.8 L31,23z M19,69.8v-5.9c13.3-3.1,29.6-3.1,42.9,0v5.9H19z M62.4,61.2L62.4,61.2c-13.7-3-30.1-3-43.6,0.1l-0.1-0.1 c-7.2-6-10.5-12.1-10.5-19.8C8.2,33,14.9,28,21.4,28c5.8,0,9.8,1.9,12.7,6l6.5,9.4l6.5-9.4c2.9-4.1,6.9-6,12.7-6 C66.3,28,73,33,73,41.4C72.9,49.2,69.6,55.3,62.4,61.2z\"/>", "wQ": "<g> <circle style=\"fill:#FFFFFF;\" cx=\"21.9\" cy=\"16.5\" r=\"5.2\"/> <path style=\"fill:#FFFFFF;\" d=\"M59.1,21.8c2.9,0,5.2-2.3,5.2-5.2s-2.3-5.2-5.2-5.2s-5.2,2.3-5.2,5.2S56.2,21.8,59.1,21.8z\"/> <path style=\"fill:#FFFFFF;\" d=\"M72.1,26.4c-2.9,0-5.2,2.3-5.2,5.2c0,1.4,0.6,2.8,1.5,3.7L55.2,50.5l3.3-28.7l-2.1-0.6l-9.8,16.9l-5.1-21.7 h-1.1h-1.1l-5.1,21.7l-9.8-16.9l-2.1,0.6l3.3,28.7l-13-15.2c0.9-0.9,1.5-2.3,1.5-3.7c0-2.9-2.3-5.2-5.2-5.2s-5.2,2.3-5.2,5.2 s2.3,5.2,5.2,5.2c0.5,0,1-0.1,1.5-0.2L19.5,71h42.1l9.1-34.4c0.5,0.1,1,0.2,1.5,0.2c2.9,0,5.2-2.3,5.2-5.2S75,26.4,72.1,26.4z\"/> <circle style=\"fill:#FFFFFF;\" cx=\"40.5\" cy=\"11.3\" r=\"5.2\"/> </g> <g> <path style=\"fill:#CFCECF;\" d=\"M48.4,33.6\"/> <path style=\"fill:#CFCECF;\" d=\"M34.5,33.6\"/> <polygon style=\"fill:#CFCECF;\" points=\"41.4,20.3 46.7,38.2 41.4,45.5 \"/> <polygon style=\"fill:#CFCECF;\" points=\"27.1,53.6 23.6,60.4 13.9,38.3 \"/> <polygon style=\"fill:#CFCECF;\" points=\"34,50.5 24.8,22.8 40.5,50.9 \"/> <polygon style=\"fill:#CFCECF;\" points=\"48.2,50.5 57.5,25.8 53.9,53.6 \"/> <polygon style=\"fill:#CFCECF;\" points=\"52.9,70.4 68.5,36.7 70,37 60.7,70.4 \"/> </g> <path style=\"fill:#CFCECF;\" d=\"M73.3,36.7c3.4-0.9,3.9-3.4,4-6.7c0-0.6-0.9-1.8-1.3-1.8c-0.4,0.1-0.8,0.1-1.2,0.3c0.3,2.5-1.3,5-3.8,5.7 c-1.1,0.3-2.1,0.2-3.1-0.1C67.3,35.1,71.8,37.1,73.3,36.7z\"/> <path style=\"fill:#CFCECF;\" d=\"M60,21.3c3.4-0.9,3.9-3.4,4-6.7c0-0.6-0.9-1.8-1.3-1.8c-0.4,0.1-0.8,0.1-1.2,0.3c0.3,2.5-1.3,5-3.8,5.7 c-1.1,0.3-2.1,0.2-3.1-0.1C54,19.7,58.5,21.7,60,21.3z\"/> <path style=\"fill:#CFCECF;\" d=\"M10.1,36.7c3.4-0.9,3.9-3.4,4-6.7c0-0.6-0.9-1.8-1.3-1.8c-0.4,0.1-0.8,0.1-1.2,0.3c0.3,2.5-1.3,5-3.8,5.7 c-1.1,0.3-2.1,0.2-3.1-0.1C4.1,35.1,8.6,37.1,10.1,36.7z\"/> <path style=\"fill:#CFCECF;\" d=\"M23.1,21.3c3.4-0.9,3.9-3.4,4-6.7c0-0.6-0.9-1.8-1.3-1.8c-0.4,0.1-0.8,0.1-1.2,0.3c0.3,2.5-1.3,5-3.8,5.7 c-1.1,0.3-2.1,0.2-3.1-0.1C17.1,19.7,21.6,21.7,23.1,21.3z\"/> <path style=\"fill:#CFCECF;\" d=\"M41.6,16.1c3.4-0.9,3.9-3.4,4-6.7c0-0.6-0.9-1.8-1.3-1.8c-0.4,0.1-0.8,0.1-1.2,0.3c0.3,2.5-1.3,5-3.8,5.7 c-1.1,0.3-2.1,0.2-3.1-0.1C35.6,14.6,40.1,16.5,41.6,16.1z\"/> <g> <circle style=\"fill:#FFFFFF;\" cx=\"21.9\" cy=\"16.5\" r=\"5.2\"/> <path style=\"fill:#FFFFFF;\" d=\"M59.1,21.8c2.9,0,5.2-2.3,5.2-5.2s-2.3-5.2-5.2-5.2s-5.2,2.3-5.2,5.2S56.2,21.8,59.1,21.8z\"/> <path style=\"fill:#FFFFFF;\" d=\"M72.1,26.4c-2.9,0-5.2,2.3-5.2,5.2c0,1.4,0.6,2.8,1.5,3.7L55.2,50.5l3.3-28.7l-2.1-0.6l-9.8,16.9l-5.1-21.7 h-1.1h-1.1l-5.1,21.7l-9.8-16.9l-2.1,0.6l3.3,28.7l-13-15.2c0.9-0.9,1.5-2.3,1.5-3.7c0-2.9-2.3-5.2-5.2-5.2s-5.2,2.3-5.2,5.2 s2.3,5.2,5.2,5.2c0.5,0,1-0.1,1.5-0.2L19.5,71h42.1l9.1-34.4c0.5,0.1,1,0.2,1.5,0.2c2.9,0,5.2-2.3,5.2-5.2S75,26.4,72.1,26.4z\"/> <circle style=\"fill:#FFFFFF;\" cx=\"40.5\" cy=\"11.3\" r=\"5.2\"/> </g> <g> <path style=\"fill:#CFCECF;\" d=\"M48.4,33.6\"/> <path style=\"fill:#CFCECF;\" d=\"M34.5,33.6\"/> <polygon style=\"fill:#CFCECF;\" points=\"41.4,20.3 46.7,38.2 41.4,45.5 \"/> <polygon style=\"fill:#CFCECF;\" points=\"27.1,53.6 23.6,60.4 13.9,38.3 \"/> <polygon style=\"fill:#CFCECF;\" points=\"34,50.5 24.8,22.8 40.5,50.9 \"/> <polygon style=\"fill:#CFCECF;\" points=\"48.2,50.5 57.5,25.8 53.9,53.6 \"/> <path style=\"fill:#CFCECF;\" d=\"M42.1,70.4C62,65.7,68.5,36.7,68.5,36.7L70,37l-9.3,33.4C60.7,70.4,52.8,70.4,42.1,70.4z\"/> </g> <path style=\"fill:#CFCECF;\" d=\"M73.3,36.7c3.4-0.9,3.9-3.4,4-6.7c0-0.6-0.9-1.8-1.3-1.8c-0.4,0.1-0.8,0.1-1.2,0.3c0.3,2.5-1.3,5-3.8,5.7 c-1.1,0.3-2.1,0.2-3.1-0.1C67.3,35.1,71.8,37.1,73.3,36.7z\"/> <path style=\"fill:#CFCECF;\" d=\"M60,21.3c3.4-0.9,3.9-3.4,4-6.7c0-0.6-0.9-1.8-1.3-1.8c-0.4,0.1-0.8,0.1-1.2,0.3c0.3,2.5-1.3,5-3.8,5.7 c-1.1,0.3-2.1,0.2-3.1-0.1C54,19.7,58.5,21.7,60,21.3z\"/> <path style=\"fill:#CFCECF;\" d=\"M10.1,36.7c3.4-0.9,3.9-3.4,4-6.7c0-0.6-0.9-1.8-1.3-1.8c-0.4,0.1-0.8,0.1-1.2,0.3c0.3,2.5-1.3,5-3.8,5.7 c-1.1,0.3-2.1,0.2-3.1-0.1C4.1,35.1,8.6,37.1,10.1,36.7z\"/> <path style=\"fill:#CFCECF;\" d=\"M23.1,21.3c3.4-0.9,3.9-3.4,4-6.7c0-0.6-0.9-1.8-1.3-1.8c-0.4,0.1-0.8,0.1-1.2,0.3c0.3,2.5-1.3,5-3.8,5.7 c-1.1,0.3-2.1,0.2-3.1-0.1C17.1,19.7,21.6,21.7,23.1,21.3z\"/> <path style=\"fill:#CFCECF;\" d=\"M41.6,16.1c3.4-0.9,3.9-3.4,4-6.7c0-0.6-0.9-1.8-1.3-1.8c-0.4,0.1-0.8,0.1-1.2,0.3c0.3,2.5-1.3,5-3.8,5.7 c-1.1,0.3-2.1,0.2-3.1-0.1C35.6,14.6,40.1,16.5,41.6,16.1z\"/> <path d=\"M72.1,25.1c-3.6,0-6.4,2.9-6.4,6.5c0,1.3,0.4,2.6,1.1,3.7l-10.5,13l3.4-25.4c3.3-0.3,5.9-3.1,5.9-6.4c0-3.6-2.9-6.5-6.5-6.5 s-6.5,2.9-6.5,6.5c0,1.9,0.8,3.7,2.3,5l-7.8,13.4L43,17.3c2.3-1,3.9-3.4,3.9-6c0-3.6-2.9-6.4-6.4-6.4c-3.6,0-6.5,2.9-6.5,6.4 c0,2.6,1.5,4.9,3.9,6l-4.1,17.6L26,21.5c1.5-1.2,2.3-3.1,2.3-5c0-3.6-2.9-6.5-6.5-6.5s-6.5,2.9-6.5,6.5c0,3.3,2.6,6.1,5.9,6.4 l3.4,25.4l-10.4-13c0.7-1,1.1-2.3,1.1-3.7c0-3.6-2.9-6.5-6.5-6.5S2.4,28,2.4,31.6S5.3,38,8.8,38h0.5l9,34v0.2h44l9-34.2h0.5 c3.6,0,6.4-2.9,6.4-6.4C78.3,28,75.6,25.1,72.1,25.1z M13.1,31.6c0,2.3-1.9,4.1-4.2,4.1s-4.1-1.8-4.1-4.1s1.9-4.2,4.1-4.2 C11.2,27.4,13.1,29.3,13.1,31.6z M21.9,20.8c-2.3,0-4.1-1.9-4.1-4.2s1.9-4.2,4.1-4.2c2.3,0,4.2,1.9,4.2,4.2 C26.1,18.8,24.2,20.8,21.9,20.8z M55,16.5c0-2.3,1.9-4.2,4.1-4.2c2.3,0,4.2,1.9,4.2,4.2s-1.9,4.2-4.2,4.2C56.8,20.8,55,18.9,55,16.5 z M20.4,69.8l-8.6-32.4c0.1-0.1,0.2-0.1,0.3-0.1s0.2-0.1,0.3-0.1l15.1,17.3l-3.7-31.6h0.1L40.3,51l0.2,0.4l16.6-28.7h0.1l-3.7,31.6 L68.6,37c0.2,0.1,0.4,0.2,0.6,0.3l-8.6,32.5H20.4z M76.3,31.6c0,2.3-1.9,4.1-4.2,4.1c-2.3,0-4.1-1.8-4.1-4.1s1.9-4.2,4.1-4.2 C74.4,27.4,76.3,29.3,76.3,31.6z M40.5,46.3L35.7,38l4.7-20.2h0.3L45.3,38L40.5,46.3z M40.5,15.5c-2.3,0-4.2-1.9-4.2-4.2 s1.9-4.1,4.2-4.1s4.2,1.9,4.2,4.1C44.8,13.6,42.8,15.5,40.5,15.5z\"/> <polygon points=\"40.5,65.7 36.6,59.8 40.5,54 44.4,59.8 \"/>", "wR": "<polygon style=\"fill:#FFFFFF;\" points=\"58.7,59.4 55.5,32.1 64.1,23.9 64.1,23.9 64.1,12.8 53,12.8 53,20.9 46.3,20.9 46.3,12.8 34.7,12.8 34.7,20.9 28,20.9 28,12.8 16.9,12.8 16.9,23.9 25.5,32.1 22.3,59.4 15.7,59.4 15.7,71 19.8,71 61.1,71 61.2,71 65.3,71 65.3,59.4 \"/> <path style=\"fill:#CFCECF;\" d=\"M58.5,59.7l-4.2-27.2h2.2l7.6-8.6V12.8l-5.8,4.6v8.2H32l11.6,6.9h3.2c0,12.1-2.8,21.3-11.7,27.2h13.3V70h16 V59.7H58.5z\"/> <path d=\"M59.1,58.1l-2.6-24.8l8.7-9V11.5H51.8v8.2h-4.2v-8.2H33.5v8.2h-4.2v-8.2H15.6v12.9l8.7,9l-2.6,24.8l0,0h-7.3v14.1h51.8V72 l0,0h0.2V58.1H59.1z M36,22.2V14h9v8.2h9.2V14h8.5v9.3L54.4,32H26.5l-8.4-8.6V14h8.6v8.2H36z M54,34.4l2.6,23.7H24.3l2.6-23.7H54z M56.9,60.6H60h4v9.1H17v-9.1h4.8H24H56.9z\"/>", "wB": "<path style=\"fill:#FFFFFF;\" d=\"M61.4,71l-11.9-9.1l10.6-14.6c0-11-4.9-19.9-11.9-26.3l-1.7-0.8l-7.9,14.3l-1.5-1.6l7.8-14.7l0,0l2.7-5.1 c0-0.1,0-0.2,0-0.2c0-3.6-2.9-6.6-6.6-6.6c-3.6,0-6.6,2.9-6.6,6.6c0,0.1,0,0.2,0,0.2l2.3,4.4C28,24.1,20.9,34.1,20.9,47.3l10.6,14.6 L19.6,71H61.4z\"/> <polygon style=\"fill:#CFCECF;\" points=\"45.6,70.7 60,70.7 49.6,61.2 42.8,61.2 \"/> <path style=\"fill:#CFCECF;\" d=\"M50.8,25.1C54.7,42.1,36,55.8,36,55.8l7.3,4.7h7.4l10.2-13.2l-1.5-8.6l-3.6-8.3L53.2,26L50.8,25.1z\"/> <path style=\"fill:#CFCECF;\" d=\"M44.5,8.6c0.8,2.4-3.4,4.4-3.4,4.4v5.1l3.3,0.1l3-4.3l-0.3-3.4L45,8.6H44.5z\"/> <path d=\"M65,72.2L50.9,61.6l10.2-14v-0.4c0-14.1-7.6-23.1-12.2-27.3l-2.3-2.3l2.1-3.9l0.1-0.3v-0.5c0-4.3-3.5-7.9-7.9-7.9 c-4.3,0-7.8,3.5-7.8,7.9v0.5l1.9,3.7c-5.9,4.6-15.5,14.6-15.5,30.1v0.4l10.2,14L16,72.2H65z M22.5,46.9c-0.3-14.6,9.3-24,15-28.2 l0.9-0.6L35.7,13c0-2.9,2.4-5.3,5.3-5.3c2.9,0,5.3,2.4,5.4,5.3L35.8,34.6v0.1l2.2,5.8l9.3-18.8l1.1,1c4.8,4.7,10.4,12.7,10.1,24.1 l-9.2,13H31.8L22.5,46.9z M32.9,62.5H48l9.8,7.3H23.2L32.9,62.5z\"/> <polyline points=\"36.2,18 41.1,18 38.4,20.1 34.6,20.1 \"/>", "wN": "<path style=\"fill:#FFFFFF;\" d=\"M49,45.1c-3.3,1.6-7.2,1.9-11,0.7l-0.4-0.1l-0.3,0.2c-0.1,0.1-11.9,9.9-15.7,23.7l-0.3,0.9H66L64.2,65v-0.1 c0-0.1-0.1-14.8-0.1-23.8c0-16.9-7.6-25.6-15-28.6c-3.7-1.4-9.2-2.5-12.4-2.5h-1.2l3.2,6.2L14.3,36.5l1,10.8l5,1.4l5.1-3.9H27 l-4.3,4.5l1.1,0.4l6.7,1.9l5.5-6.8c3.5,1.5,7.7,1.3,12.5-0.6c2.8-1.2,5.1-3.6,6.5-5.6C54.1,41.4,52,43.7,49,45.1z\"/> <path d=\"M39.6,22.7l-7.7,6.2c-0.5,0.5-0.6,1.3-0.2,1.9c0.3,0.4,0.7,0.6,1.1,0.6c0.2,0,0.4,0,0.6-0.1l9.1-3.6L39.6,22.7z\"/> <path style=\"fill:#CFCECF;\" d=\"M36,70.7L57.4,71h8.5c0,0-2.1-5.2-2.1-7.2c0-8.2,0-29.9,0-35.2c0,8.4-2.9,20.8-9.7,27.6 C39.9,56.2,36,70.7,36,70.7z\"/> <path style=\"fill:#CFCECF;\" d=\"M35.6,47.3l1.3-1.8l8.8,0.8l4.8-2.2l3.9-3.4l2.4-6.5c-0.8-1.3-2.5-2.8-4.7-3.5c-1.5,7.8-6.8,11.1-15.6,11.1 l-2.7-3.2l-5,5.4L23,48.8l7,4.5L35.6,47.3z\"/> <path d=\"M19.3,72.2h49l-2.5-7.5c0-1.9,0-15.1,0-23.6c0-6.8-0.9-23.9-16-30.1c-5.8-2.4-14.6-2.6-15-2.5L33,8.6l3.7,7.2l-24.2,20 l1.3,12.8l14.5,4.2c-3.5,4.5-7.2,10.7-8.8,18L19.3,72.2z M37.8,46.8c1.5,0.5,3,0.8,4.7,0.8c2.4,0,4.7-0.8,6.8-1.8 c4.1-2,6.8-5.6,7.3-10.1l0.2-1.4l-0.6,1.2c0,0.1-3,5.8-7.9,8c-3.9,1.6-8.4,2.4-12.4,0.4l-6.5,6.4L24.1,49l4.7-4.9h-3.7l-5,3.8 L16,46.7l-0.9-9.9l24.6-20.4l-2.9-5.6c2.9,0,8.3,0.9,12.1,2.4c5.7,2.3,14.5,9.6,14.5,27.9c0,9.1,0.1,23.8,0.1,23.8v0.2l1.5,4.7H22.3 C25.9,56.6,37,47.4,37.8,46.8z\"/>", "wP": "<g> <path style=\"fill:#FFFFFF;\" d=\"M29.7,37.8h21.6l-5.1-6h0.7c2.6-1.9,4.3-5.1,4.3-8.6c0-6-4.8-10.7-10.7-10.7s-10.7,4.8-10.7,10.7 c0,3.5,1.7,6.7,4.3,8.6h0.7L29.7,37.8z\"/> <polygon style=\"fill:#FFFFFF;\" points=\"49.4,60.5 45.1,39.8 35.1,39.8 31.6,60.5 21,69.9 60,69.9 \"/> </g> <polygon style=\"fill:#CFCECF;\" points=\"40.5,59.7 47.8,71 61.6,71 51.2,60 49.8,59.1 46.9,38.9 40.5,38.9 \"/> <polygon style=\"fill:#CFCECF;\" points=\"44.4,38 52.5,38 47.2,31.5 41,31.5 \"/> <path style=\"fill:#CFCECF;\" d=\"M45,13.3c3.7,5.5,1.1,17.6-10.2,17.6c-0.2,0,12.1,0.6,13.1-0.3c1.9-1.9,3.1-4.4,3.1-7.3 C51.1,17.3,44.8,12.1,45,13.3z\"/> <polygon style=\"fill:none;\" points=\"31.9,60.6 21.6,69.7 59.4,69.7 49.2,60.7 49.1,60.6 44.9,40 35.3,40 \"/> <polygon style=\"fill:none;\" points=\"46.1,32 34.9,32 30.2,37.9 50.8,37.9 \"/> <path style=\"fill:none;\" d=\"M47.5,29.5c1.6-1.7,2.5-4,2.5-6.4c0-5.3-4.2-9.5-9.5-9.5c-5.2,0-9.5,4.2-9.5,9.5c0,2.4,0.9,4.6,2.5,6.4H47.5z\" /> <path d=\"M15,72.2h51L51.5,59.4l-4.2-20h8.2l-7.1-8c2.9-2.2,3.6-5.6,3.6-8.1c0-6.4-5-11.4-11.4-11.4c-6.3,0-11.4,5.1-11.4,11.4 c0,2.5,0.6,5.9,3.6,8.1l-7.1,8H33l-3.4,20L15,72.2z M31.4,23.3c0-5,4.1-9.1,9.1-9.1c5.1,0,9.1,4,9.1,9.1c0,2.3-0.8,4.4-2.4,6.1H33.8 C32.3,27.7,31.4,25.5,31.4,23.3z M35.2,31.7h10.7l4.5,5.6H30.7L35.2,31.7z M35.4,39.4L35.4,39.4h9.3h0.1l4.4,21.2v0.1l10.2,9H21.6 l10.2-9.1L35.4,39.4z\"/>", "bK": "<g> <path d=\"M59.7,25.6c-6.6,0-11.4,2.3-14.7,7.1l-4.5,6.4L36,32.6c-3.3-4.7-8.1-7.1-14.7-7.1c-7.7,0-15.7,5.9-15.7,15.9 c0,8.4,3.4,15,10.9,21.3v9.4h47.9v-9.4c7.5-6.4,10.9-13,10.9-21.3C75.4,31.5,67.4,25.6,59.7,25.6z M40.5,57.2l-4.1-6l4.1-6l4.1,6 L40.5,57.2z\"/> <polygon points=\"50.7,21.4 50.7,13.7 42.7,14.6 44.4,7.2 36.6,7.2 38.3,14.6 30.3,13.7 30.3,21.4 38.3,19 35.2,29 40.5,35.9 45.8,29 42.7,19 \"/> </g> <g> <polygon style=\"fill:#6D6E6E;\" points=\"40.5,19.9 37.7,28.5 40.5,31.9 \"/> <polygon style=\"fill:#6D6E6E;\" points=\"31.8,15.1 35.6,17.4 31.8,19.7 \"/> <polygon style=\"fill:#6D6E6E;\" points=\"49.2,15.1 42.8,16.3 47.5,17.4 \"/> <polygon style=\"fill:#6D6E6E;\" points=\"42.6,8.9 40.5,10.8 38.4,8.9 \"/> <path style=\"fill:#6D6E6E;\" d=\"M66.9,31.1c-2.1-1.5-4.6-2.2-7.1-2.2c-5.5,0-9.3,1.8-12,5.7l-6.2,8.8C41.6,43.3,56,30.6,66.9,31.1z\"/> <path style=\"fill:#6D6E6E;\" d=\"M29.3,30.3c-2-1-4.3-1.4-7.1-1.4c-6.1,0-12.4,4.7-12.4,12.7c0,5.1,1.5,9.5,4.8,13.6 C14.2,42.5,23.5,31.8,29.3,30.3z\"/> <path style=\"fill:#6D6E6E;\" d=\"M32.4,62.9c-6.1,0.3-9,0.8-11.8,1.4v4.8h11.8V62.9z\"/> </g>", "bQ": "<path d=\"M55.7,50.9l4-34.9L40.5,49.2L21.3,16l4.1,34.9L7.9,30.8L18.8,72h43.4l10.9-41.2L55.7,50.9z M40.5,66.9l-3.6-6.4l3.6-6.4 l3.6,6.4L40.5,66.9z\"/> <polygon points=\"40.5,11.7 34.9,35.2 40.5,44.7 46.1,35.2 \"/> <circle cx=\"40.5\" cy=\"10.6\" r=\"5.4\"/> <path style=\"fill:#6D6E6E;\" d=\"M41.6,7.2c-0.8-0.4-1.7-0.6-2.6-0.3c-1.8,0.5-2.9,2.4-2.4,4.2c0,0.1,0,0.1,0.1,0.2C39.6,11.6,42,8.5,41.6,7.2z\" /> <circle cx=\"59.5\" cy=\"16\" r=\"5.4\"/> <path style=\"fill:#6D6E6E;\" d=\"M60.6,12.6c-0.8-0.4-1.7-0.6-2.6-0.3c-1.8,0.5-2.9,2.4-2.4,4.2c0,0.1,0,0.1,0.1,0.2 C58.6,16.9,61,13.9,60.6,12.6z\"/> <circle cx=\"21.5\" cy=\"16\" r=\"5.4\"/> <path style=\"fill:#6D6E6E;\" d=\"M22.6,12.6c-0.8-0.4-1.7-0.6-2.6-0.3c-1.8,0.5-2.9,2.4-2.4,4.2c0,0.1,0,0.1,0.1,0.2 C20.6,16.9,23,13.9,22.6,12.6z\"/> <circle cx=\"73.1\" cy=\"31.4\" r=\"5.4\"/> <path style=\"fill:#6D6E6E;\" d=\"M74.2,28c-0.8-0.4-1.7-0.6-2.6-0.3c-1.8,0.5-2.9,2.4-2.4,4.2c0,0.1,0,0.1,0.1,0.2C72.2,32.3,74.6,29.3,74.2,28z \"/> <circle cx=\"7.9\" cy=\"31.4\" r=\"5.4\"/> <path style=\"fill:#6D6E6E;\" d=\"M9,28c-0.8-0.4-1.7-0.6-2.6-0.3C4.6,28.1,3.5,30,4,31.8c0,0.1,0,0.1,0.1,0.2C7,32.3,9.4,29.3,9,28z\"/> <polygon style=\"fill:#6D6E6E;\" points=\"40.5,20.9 37.4,34.3 40.5,39.6 \"/> <polygon style=\"fill:#6D6E6E;\" points=\"56.6,54.7 58.4,60.3 68,38.3 \"/> <polygon style=\"fill:#6D6E6E;\" points=\"47.9,50.5 55.9,29.3 43.6,50.1 \"/> <polygon style=\"fill:#6D6E6E;\" points=\"33.3,50.5 25,29.1 28.1,51 \"/> <polygon style=\"fill:#6D6E6E;\" points=\"23.1,58.7 12.6,40.9 20.5,67.3 \"/>", "bR": "<polygon points=\"56.9,31.1 24.1,31.1 19.2,72 61.8,72 61.8,72 \"/> <rect x=\"14.2\" y=\"58.5\" width=\"52.5\" height=\"13.5\"/> <path style=\"fill:#6D6E6E;\" d=\"M41.1,34.1c-0.1,7.2-6.6,24.4-14.2,24.4c-1.2,0-2.3,0-2.3,0l3.8-24.4H41.1z\"/> <rect x=\"18.4\" y=\"62.3\" style=\"fill:#6D6E6E;\" width=\"17.9\" height=\"6.1\"/> <polygon points=\"53.4,12 53.4,18.9 46.5,18.9 46.5,12 34.5,12 34.5,18.9 27.6,18.9 27.6,12 15.6,12 15.6,23.4 24.6,32.5 56.4,32.5 65.4,23.4 65.4,23.4 65.4,12 \"/> <g> <polygon style=\"fill:#6D6E6E;\" points=\"62.4,15 56.4,15 56.4,22.2 \"/> <polygon style=\"fill:#6D6E6E;\" points=\"43.5,15 37.5,15 37.5,22.2 \"/> <polygon style=\"fill:#6D6E6E;\" points=\"24.6,15 18.6,15 18.6,22.2 \"/> </g>", "bB": "<polygon points=\"18.9,72 62.1,72 50.3,62.5 30.7,62.5 \"/> <g> <path d=\"M41,18.9c1.5,0,2.9-0.5,4-1.3l2.8-5.2c0-0.1,0-0.2,0-0.3c0-3.7-3-6.8-6.8-6.8c-3.7,0-6.8,3-6.8,6.8c0,0.1,0,0.2,0,0.3 l2.8,5.2C38.2,18.4,39.6,18.9,41,18.9\"/> <path d=\"M48.4,20.4l-9.7,18.2L37,32.7l8.1-15.2c-1-0.8-2-1.5-3-2.2H39c-10,6.6-19.1,17.5-19.1,32.2l10.9,15.2h2.7h14h2.7l10.9-15.2 C61.1,36.1,55.6,27,48.4,20.4\"/> <path style=\"fill:#6D6E6E;\" d=\"M48.6,27.9l-7.2,13c0,0,5,1.3,7.2-1.9C50.8,35.9,50.2,28.9,48.6,27.9z\"/> <path style=\"fill:#6D6E6E;\" d=\"M31.2,55.1c-1.6-13.9,1.4-28.1,7.9-34.8l-0.5-0.7c-7.1,6.3-14,15.6-14,26.6L31.2,55.1z\"/> </g> <polygon style=\"fill:#6D6E6E;\" points=\"37.9,69 37.9,63.3 35.4,63.3 28.8,69 \"/> <path style=\"fill:#6D6E6E;\" d=\"M42.4,7.9c-0.8-0.5-1.8-0.6-2.7-0.3c-1.9,0.5-3,2.5-2.5,4.4c0,0.1,0,0.1,0.1,0.2C40.3,12.4,42.8,9.3,42.4,7.9z\" />", "bN": "<path d=\"M19.6,72C38.2,72,67,72,67,72l-2-6.1c0,0-0.1-17-0.1-26.1c0-17.3-8.5-25.3-16-28.4c-5.6-2.3-14.6-1.8-14.6-1.8l3.3,6.5 L12,36.4l2,12.2l13.4,3.5l6.1-5.1c1.2,0.5,2.5,0.8,3.7,1.1v0.3C37.2,48.4,22.9,57,19.6,72z M31.4,31.3c-0.6,0.3-1.1-0.5-0.6-1 l7.2-6.2l2.2,3.7L31.4,31.3z\"/> <polygon style=\"fill:#6D6E6E;\" points=\"15.8,38 17.1,45.9 21.8,47 21.7,42.4 18.8,41.9 \"/> <path style=\"fill:#6D6E6E;\" d=\"M30.8,33.4l15.6-3.8l2.2-3.8c0,0,2.8,1.1,2.1,6.3s-6.8,8.3-12.1,7.6C31.7,38.8,30.8,33.4,30.8,33.4z\"/> <path style=\"fill:#6D6E6E;\" d=\"M36,67.9c5.1-16.4,16.4-13,16.8-22.4c-3.3,5.9-10.7,5.6-10.7,5.6s-11.6,5.1-15.8,16.8 C26.3,67.9,36,67.9,36,67.9z\"/>", "bP": "<path d=\"M40.5,12.5c-6,0-10.7,4.8-10.7,10.7c0,3.6,1.8,6.9,4.6,8.8h12.3c2.8-1.9,4.6-5.2,4.6-8.8C51.2,17.2,46.5,12.5,40.5,12.5\"/> <path style=\"fill:#6D6E6E;\" d=\"M43.2,16.4c-1.5-0.9-3.3-1.1-5.2-0.6c-3.6,1-5.6,4.6-4.7,8.2c0,0.1,0.1,0.2,0.1,0.3C39.2,25,44,19.1,43.2,16.4z \"/> <path d=\"M34.5,31.7l-0.6,7.7l-3.2,21.7L18.3,72h44.3L50.3,61.1l-4-21.7l-0.6-7.7\"/> <polygon style=\"fill:#6D6E6E;\" points=\"37.4,39.6 33.8,62.1 27.2,69.2 34.8,69.2 40,63.8 40.1,39.6 \"/> <polygon points=\"26.2,39.4 54.8,39.4 47.9,30.8 33.1,30.8 \"/> <polygon style=\"fill:#6D6E6E;\" points=\"32.1,36.9 41.1,36.9 39,32.6 35,32.6 \"/> <g id=\"Layer_2_1_\" style=\"display:none;\"> <rect style=\"display:inline;fill:none;\" width=\"81\" height=\"81\"/> <path style=\"display:inline;fill:#FFFFFF;\" d=\"M34.3,33.2c-2.8-2-4.7-5.2-4.7-8.9c0-6,4.9-10.9,10.9-10.9s10.9,4.9,10.9,10.9c0,3.7-1.9,7-4.7,8.9l0.5,8.3 l3.4,18.7L63.3,71H17.7l12.7-10.8l3.4-18.7\"/> <path style=\"display:inline;fill:#CFCECF;\" d=\"M45,14.4C48.7,19.9,46.1,33,34.8,33c-0.2,0,12.1,0.6,13.1-0.3c1.9-1.9,3.1-4.4,3.1-7.3 C51.1,19.4,44.8,13.2,45,14.4z\"/> <polygon style=\"display:inline;fill:#CFCECF;\" points=\"40.5,60.8 47.8,70 62.1,70 51.2,61.1 49.8,60.2 46.9,41 40.5,41 \"/> <path style=\"display:inline;fill:#231F20;stroke:#000000;stroke-width:0.5;stroke-miterlimit:10;\" d=\"M40.5,11.7c-7,0-12.7,5.7-12.7,12.7c0,4.3,2.2,8.1,5.5,10.4h7.3c-5.7,0-10.4-4.7-10.4-10.4S34.9,14,40.6,14 S51,18.6,51,24.3s-4.7,10.4-10.4,10.4h7.3c3.3-2.3,5.5-6.2,5.5-10.4C53.1,17.4,47.4,11.7,40.5,11.7z\"/> <path style=\"display:inline;stroke:#000000;stroke-width:0.5;stroke-miterlimit:10;\" d=\"M48.2,42l3.2,17.6L66,72H15l14.5-12.4L32.8,42 M35,41l-3.6,19.7l-11,9.3h40.1l-10.9-9.3L46,41\"/> <path style=\"display:inline;fill:#FFFFFF;\" d=\"M34.3,33.2\"/> <polygon style=\"display:inline;\" points=\"50.3,32.8 30.7,32.8 22.5,43.2 58.5,43.2 \"/> <polygon style=\"display:inline;fill:#FFFFFF;\" points=\"27.5,41 53.5,41 48.9,35.2 32.1,35.2 \"/> <polygon style=\"display:inline;fill:#CFCECF;\" points=\"44.1,41 53.5,41 48.9,35.2 40.7,35.2 \"/> </g>"};
+function pieceSVG(ch){ const k=(ch===ch.toUpperCase()?'w':'b')+ch.toUpperCase(); const ps=settings.pieces, px={fade:'webp',papercut:'svg',chessnut:'svg',fantasy:'svg'}[ps]; if(px) return `<svg viewBox="0 0 100 100"><image href="pieces/${ps}/${k}.${px}" width="100" height="100"/></svg>`; return `<svg viewBox="0 0 81 81">${PIECE_SET[k]}</svg>`; }
+
+// ---------- chess model ----------
+const FILES='abcdefgh';
+function parseFEN(fen){
+  const [pl, turn, cast, ep] = fen.split(' ');
+  const b = Array(64).fill(null); // index 0 = a8 ... 63 = h1
+  let i=0;
+  for(const ch of pl){ if(ch==='/') continue; if(/\d/.test(ch)) i+=+ch; else b[i++]=ch; }
+  return {b, turn, cast:cast||'-', ep:ep||'-'};
+}
+function sqIdx(s){ return (8-+s[1])*8 + FILES.indexOf(s[0]); }
+function idxSq(i){ return FILES[i%8]+(8-Math.floor(i/8)); }
+function isWhite(ch){ return ch && ch===ch.toUpperCase(); }
+function applyMove(pos, uci){
+  const from=sqIdx(uci.slice(0,2)), to=sqIdx(uci.slice(2,4)), promo=uci[4];
+  const b=pos.b.slice(); const p=b[from]; if(!p) return pos;
+  let ep='-';
+  // en passant capture
+  if(p.toLowerCase()==='p' && (from-to)%8!==0 && !b[to]){ b[to + (isWhite(p)?8:-8)] = null; }
+  // castling
+  if(p.toLowerCase()==='k' && Math.abs(from-to)===2){
+    const rank = Math.floor(from/8)*8;
+    if(to>from){ b[rank+5]=b[rank+7]; b[rank+7]=null; } else { b[rank+3]=b[rank+0]; b[rank+0]=null; }
+  }
+  if(p.toLowerCase()==='p' && Math.abs(from-to)===16){ ep = idxSq((from+to)/2); }
+  b[to] = promo ? (isWhite(p)?promo.toUpperCase():promo.toLowerCase()) : p;
+  b[from]=null;
+  return {b, turn: pos.turn==='w'?'b':'w', cast:pos.cast, ep};
+}
+// pseudo-legal targets for highlighting (no check detection)
+function targets(pos, from){
+  const b=pos.b, p=b[from]; if(!p) return [];
+  const w=isWhite(p), t=p.toLowerCase(), r=Math.floor(from/8), f=from%8, out=[];
+  const own = x=> b[x] && isWhite(b[x])===w;
+  const add=(rr,ff)=>{ if(rr<0||rr>7||ff<0||ff>7) return false; const x=rr*8+ff; if(own(x)) return false; out.push(x); return !b[x]; };
+  const slide=(dirs)=>{ for(const [dr,df] of dirs){ let rr=r+dr, ff=f+df; while(add(rr,ff)){ rr+=dr; ff+=df; } } };
+  if(t==='p'){
+    const dir = w?-1:1, start = w?6:1;
+    if(r+dir>=0&&r+dir<8&&!b[(r+dir)*8+f]){ out.push((r+dir)*8+f); if(r===start && !b[(r+2*dir)*8+f]) out.push((r+2*dir)*8+f); }
+    for(const df of [-1,1]){ const ff=f+df; if(ff<0||ff>7) continue; const x=(r+dir)*8+ff; if(x<0||x>63) continue;
+      if(b[x] && isWhite(b[x])!==w) out.push(x); else if(!b[x] && pos.ep!=='-' && sqIdx(pos.ep)===x) out.push(x); }
+  } else if(t==='n'){ for(const [dr,df] of [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]]) add(r+dr,f+df); }
+  else if(t==='b') slide([[1,1],[1,-1],[-1,1],[-1,-1]]);
+  else if(t==='r') slide([[1,0],[-1,0],[0,1],[0,-1]]);
+  else if(t==='q') slide([[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]]);
+  else if(t==='k'){ for(const dr of [-1,0,1]) for(const df of [-1,0,1]) if(dr||df) add(r+dr,f+df);
+    const rank=w?7:0; if(r===rank&&f===4){ if(!b[rank*8+5]&&!b[rank*8+6]&&(b[rank*8+7]||'').toLowerCase()==='r') out.push(rank*8+6); if(!b[rank*8+3]&&!b[rank*8+2]&&!b[rank*8+1]&&(b[rank*8]||'').toLowerCase()==='r') out.push(rank*8+2); } }
+  return out;
+}
+function attacked(b, sq, byWhite){
+  const r=Math.floor(sq/8), f=sq%8;
+  const at=(rr,ff)=> (rr<0||rr>7||ff<0||ff>7)?undefined:b[rr*8+ff];
+  const is=(p,t)=> p && isWhite(p)===byWhite && p.toLowerCase()===t;
+  for(const [dr,df] of [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]]) if(is(at(r+dr,f+df),'n')) return true;
+  for(const dr of [-1,0,1]) for(const df of [-1,0,1]) if((dr||df)&&is(at(r+dr,f+df),'k')) return true;
+  const pr = byWhite? r+1 : r-1; if(is(at(pr,f-1),'p')||is(at(pr,f+1),'p')) return true;
+  for(const [dr,df,ts] of [[1,0,'rq'],[-1,0,'rq'],[0,1,'rq'],[0,-1,'rq'],[1,1,'bq'],[1,-1,'bq'],[-1,1,'bq'],[-1,-1,'bq']]){
+    let rr=r+dr, ff=f+df; while(rr>=0&&rr<8&&ff>=0&&ff<8){ const p=b[rr*8+ff]; if(p){ if(isWhite(p)===byWhite && ts.includes(p.toLowerCase())) return true; break; } rr+=dr; ff+=df; } }
+  return false;
+}
+function kingSq(b, white){ const k=white?'K':'k'; return b.indexOf(k); }
+function legalTargets(pos, from){
+  const w = isWhite(pos.b[from]);
+  return targets(pos, from).filter(to=>{
+    const promo = pos.b[from].toLowerCase()==='p' && (Math.floor(to/8)===0||Math.floor(to/8)===7) ? 'q':'';
+    if(pos.b[from].toLowerCase()==='k' && Math.abs(from-to)===2){ // castling: not in check, path not attacked
+      if(attacked(pos.b, from, !w)) return false; const mid = (from+to)/2; if(attacked(pos.b, mid, !w)) return false; }
+    const np = applyMove(pos, idxSq(from)+idxSq(to)+promo);
+    return !attacked(np.b, kingSq(np.b, w), !w);
+  });
+}
+function sanToUci(pos, san){
+  san = san.replace(/[+#!?]/g,'').replace(/0-0-0/g,'O-O-O').replace(/0-0/g,'O-O');
+  const w = pos.turn==='w', rank = w?7:0;
+  if(san==='O-O') return idxSq(rank*8+4)+idxSq(rank*8+6);
+  if(san==='O-O-O') return idxSq(rank*8+4)+idxSq(rank*8+2);
+  const m = san.match(/^([NBRQK])?([a-h])?([1-8])?x?([a-h][1-8])(?:=?([NBRQ]))?$/);
+  if(!m) return null;
+  const piece = (m[1]||'P'), to = sqIdx(m[4]), promo = m[5]?m[5].toLowerCase():'';
+  const cands=[];
+  for(let i=0;i<64;i++){ const p=pos.b[i]; if(!p||isWhite(p)!==w||p.toUpperCase()!==piece) continue;
+    if(m[2] && FILES[i%8]!==m[2]) continue; if(m[3] && (8-Math.floor(i/8))!==+m[3]) continue;
+    if(legalTargets(pos,i).includes(to)) cands.push(i); }
+  if(cands.length!==1) return null;
+  return idxSq(cands[0])+m[4]+promo;
+}
+function sanish(pos, uci){ // light notation for display
+  const from=sqIdx(uci.slice(0,2)), to=sqIdx(uci.slice(2,4)); const p=pos.b[from]||'';
+  const t=p.toUpperCase(); const cap = pos.b[to] || (t==='P' && (from-to)%8!==0);
+  if(t==='K'&&Math.abs(from-to)===2) return to>from?'O-O':'O-O-O';
+  return (t==='P'?(cap?uci[0]:''):t)+(cap?'x':'')+uci.slice(2,4)+(uci[4]?'='+uci[4].toUpperCase():'');
+}
+function parsePGN(text, premove){
+  const out=[]; const games=text.split(/(?=\[Event )/).filter(g=>g.includes('['));
+  for(const g of games){
+    const hdr={}; g.replace(/\[(\w+)\s+"([^"]*)"\]/g,(_,k,v)=>{hdr[k]=v;});
+    if(!hdr.FEN) continue;
+    let body=g.replace(/\[[^\]]*\]/g,' ');
+    const comments=[]; body=body.replace(/\{([^}]*)\}/g,(_,c)=>{comments.push(c);return ' ';});
+    let depth=0, s=''; for(const ch of body){ if(ch==='('){depth++;continue;} if(ch===')'){depth--;continue;} if(!depth) s+=ch; }
+    const toks=s.replace(/\$\d+/g,' ').replace(/\d+\.+/g,' ').trim().split(/\s+/).filter(tk=>/^(?:[NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:=?[NBRQ])?|[0O]-[0O](?:-[0O])?)[+#!?]*$/.test(tk));
+    let pos=parseFEN(hdr.FEN); const moves=[]; let ok=true;
+    for(const tk of toks){ const u=sanToUci(pos,tk); if(!u){ ok=false; break; } moves.push(u); pos=applyMove(pos,u); }
+    if(!ok||!moves.length) { out.push({error:(hdr.ChapterName||hdr.Event||'?')+': unreadable move'}); continue; }
+    const all=(hdr.ChapterName||'')+' '+(hdr.Event||'')+' '+comments.join(' ');
+    const rm=all.match(/rating\s*:?\s*(\d{3,4})/i); const tm=all.match(/\b(mateIn\d|mate|fork|pin|skewer|discoveredAttack|sacrifice|deflection|attraction|backRankMate|hangingPiece|trappedPiece|promotion|zugzwang|quietMove|endgame|middlegame|opening)\b/);
+    const name=hdr.ChapterName||hdr.Event||'PGN';
+    out.push({id:'p'+hash(hdr.FEN+moves.join(' ')), fen:hdr.FEN, moves, theme: tm?tm[1]:name.replace(/^\d+\.\s*/,'').slice(0,24), rating: rm?+rm[1]:1400, premove: !!premove, name});
+  }
+  return out;
+}
+
+// ---------- storage ----------
+const LS = {
+  get(k,d){ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+};
+// ---------- opening drills: Jobava London vs King's Indian setup (White to play, Black replies) ----------
+const OPENINGS = [];
+// Jobava-Linien aus dem Lichess Opening Explorer (Ratings 1000–1600, Blitz/Rapid/Klassisch), Stand Nov. 2026
+const OPENINGS_EXPLORER = [];
+// Schwarz-Repertoire aus dem Explorer: Caro-Kann (15) + was gegen 1.d4 am besten punktet (23)
+const OPENINGS_BLACK = [];
+const MASTER_GAMES = [];
+const MASTER_PUZZLES = [];
+const LEVELS=true;   // öffentliche Version: Puzzles in 100er-Rating-Bändern, pro Spieler ein eigenes Puzzle-Rating
+let puzzles = LEVELS ? (LS.get('tt_puzzles', null)||[]).filter(p=>p.src!=='band' && !/^Rating /.test(p.set||'')) : (LS.get('tt_puzzles', null) || BUILTIN.slice());
+if(puzzles.some(p=>/^m[123]-/.test(p.id))) puzzles = puzzles.filter(p=>!/^m[123]-/.test(p.id)).concat(BUILTIN.filter(b=>!puzzles.some(p=>p.id===b.id)));
+let prog = LS.get('tt_prog', {cards:{}, log:[], wood:{cycle:1, idx:0, results:[]}, days:{}});
+prog.wood.slowQueue=prog.wood.slowQueue||[]; prog.wood.slowTotal=prog.wood.slowTotal||0; prog.wood.dayDone=prog.wood.dayDone||0;
+const HAD_LOCAL_SETTINGS = (()=>{ try{ return !!localStorage.getItem('tt_settings'); }catch(e){ return false; } })();
+let settings = Object.assign({mode:'arts', theme:'neon', pieces:'fade', newPerDay:10, fastSec:20, autoGrade:'auto', coords:'1', retention:0.85, calib:'0', woodDaily:36, woodSlow:10, filter:{theme:'',min:'',max:''}}, LS.get('tt_settings', {}));
+function ownPuzzles(){ return LEVELS ? puzzles.filter(p=>p.src!=='band') : puzzles; }
+function savePuzzles(){ LS.set('tt_puzzles', ownPuzzles()); cloudDirty(); }
+prog.misses = prog.misses || {}; prog.arcade = prog.arcade || {highscores:[]}; prog.arcade.seq = prog.arcade.seq || {};
+function seqKey(){ const f=settings.filter; return [f.set||'*',f.theme||'*',f.min||'',f.max||''].join('|'); }
+function seqPos(){ return prog.arcade.seq[seqKey()]||0; }
+function seqAdvance(){ prog.arcade.seq[seqKey()]=seqPos()+1; saveProg(); }
+function saveProg(){ LS.set('tt_prog', prog); cloudDirty(); }
+// ---------- Blunder Pile ----------
+// Ein Puzzle verlässt den Blunder Pile erst nach MISS_NEED fehlerfreien Lösungen (ohne Tipp) an verschiedenen Tagen; jeder neue Fehler setzt den Zähler auf 0.
+// Erledigte bleiben als done:true stehen (mit Zeitstempel t), damit die Cloud-Synchronisation sie nicht wiederbelebt.
+const MISS_NEED=3;
+function addMiss(id){ const m=prog.misses[id]||{n:0,last:''}; m.n++; m.last=today(); m.ok=0; m.okDay=''; m.done=false; m.t=Date.now(); prog.misses[id]=m; saveProg(); }
+function clearMiss(id){ const m=prog.misses[id]; if(m&&!m.done){ m.done=true; m.t=Date.now(); saveProg(); } }
+function missOk(id){ const m=prog.misses[id]; if(!m||m.done||m.okDay===today()) return null; m.ok=(m.ok||0)+1; m.okDay=today(); m.t=Date.now(); if(m.ok>=MISS_NEED) m.done=true; saveProg(); return m; }
+// Systemsprenger: von Bernd selbst als besonders schwer markiert. Verlassen den Stapel nur per Hand.
+prog.sprenger = prog.sprenger || {};
+function isSpr(id){ const s=prog.sprenger[id]; return !!(s&&s.on); }
+function toggleSpr(id){ const on=!isSpr(id); prog.sprenger[id]={on, t:Date.now(), added:on?today():((prog.sprenger[id]||{}).added||'')}; saveProg(); return on; }
+prog.wow=prog.wow||{};
+function isWow(id){ const s=prog.wow[id]; return !!(s&&s.on); }
+function toggleWow(id){ const on=!isWow(id); prog.wow[id]={on, t:Date.now()}; saveProg(); return on; }
+function wowList(){ return puzzles.filter(p=>isWow(p.id)&&!p.game&&!isOpening(p)); }
+function sprList(){ return puzzles.filter(p=>isSpr(p.id)&&!p.game&&!isOpening(p)); }
+// Arcade-Wiederholung: falsch gelöste Arcade-Puzzles kommen nach ARC_RETRY weiteren Arcade-Puzzles erneut dran.
+const ARC_RETRY=20;
+function arcRetryAdd(id){ const r=prog.arcade.retry=(prog.arcade.retry||[]).filter(x=>x.id!==id); r.push({id, left:ARC_RETRY}); }
+function arcRetryTick(){ for(const x of (prog.arcade.retry||[])) x.left--; }
+function isMiss(id){ const m=prog.misses[id]; return !!(m&&!m.done); }
+function missList(){ const fl=filtered(); return fl.filter(p=>isMiss(p.id)).sort((a,b)=>prog.misses[b.id].n-prog.misses[a.id].n || (prog.misses[b.id].last>prog.misses[a.id].last?1:-1)); }
+// ---------- Arcade ----------
+let arcadeRun={score:0,solved:0,best:0,seen:new Set(),start:Date.now()};
+function arcadeBest(){ return prog.arcade.highscores.length?prog.arcade.highscores[0].score:0; }
+function arcadeMult(){ return Math.min(3, 1+0.2*Math.max(0,streak-1)); }
+function renderHud(){ const m=$('mode').value; $('arcadeHud').classList.toggle('hidden', m!=='arcade'); $('missHud').classList.toggle('hidden', m!=='misses'); $('artsHud').classList.toggle('hidden', m!=='arts'); if(m==='arts'){ artsHud(); mgFill(); mgUI(); } $('woodHud').classList.toggle('hidden', m!=='wood');
+  if(m==='wood'){ const w=prog.wood; const fl=filtered(); const ci=woodCycleInfo(fl); const goal=ci.goal; const doneNew=Math.max(0,(w.dayDone||0)-(w.slowTotal||0)); const ev=(prog.events||[]).filter(e=>e.mode==='wood'&&e.d===today()&&!e.reveal); const med=pct(ev.map(e=>e.secs),.5);
+    $('woodBar').style.width=(goal?Math.min(100,100*doneNew/goal):0)+'%';
+    $('woodInfo').innerHTML='Today <b>'+doneNew+' / '+goal+'</b> (adaptive)'+(doneNew>=goal?' ✓ keep going if you like':'')+(w.slowTotal?' · slow repeats '+(w.slowTotal-(w.slowQueue||[]).length)+'/'+w.slowTotal:'')+(ev.length?' · Median '+med+' s · '+Math.round(100*ev.filter(e=>e.ok&&!e.hint).length/ev.length)+' %':'')
+      +'<br>Cycle '+w.cycle+': '+(fl.length-ci.remaining)+'/'+fl.length+' · day '+ci.dayNo+'/'+ci.days+' · planned end '+ci.endDate+(ci.forecast?' · at the current pace ('+ci.perDay+'/day) done by '+(ci.forecast<=ci.endDate?'✓ ':'⚠ ')+ci.forecast:''); }
+  if(m==='arcade'){ $('aScore').textContent=arcadeRun.score; $('aMult').textContent='×'+arcadeMult().toFixed(1); $('aBest').textContent=arcadeBest(); $('aOrder').value=settings.arcadeOrder||'random'; $('aInfo').textContent=arcadeRun.solved+' solved · best streak '+arcadeRun.best+' · '+Math.round((Date.now()-arcadeRun.start)/60000)+' min'+((settings.arcadeOrder||'random')==='seq'?' · Position '+Math.min(seqPos()+1,filtered().filter(p=>!isOpening(p)).length)+'/'+filtered().filter(p=>!isOpening(p)).length:''); }
+  if(m==='misses'){ const all=missList(); const n=all.length; const td=all.filter(p=>prog.misses[p.id].okDay===today()).length; $('missInfo').textContent=n?n+' puzzles in the Blunder Pile'+(td?' ('+td+' already solved cleanly today)':'')+' – they leave only after '+MISS_NEED+' clean solves without a hint on different days; a new mistake resets the count to 0.':'The Blunder Pile is empty 🎉 – mistakes from all modes end up here.'; } }
+function endArcadeRun(){ if(arcadeRun.solved){ const ev=(prog.events||[]).filter(e=>e.mode==='arcade'&&e.run===arcadeRun.start); const st=statsOf(ev);
+    prog.arcade.highscores.push({score:arcadeRun.score,solved:arcadeRun.solved,best:arcadeRun.best,date:today(),mins:Math.round((Date.now()-arcadeRun.start)/60000),run:arcadeRun.start,acc:st.acc,med:st.med,p90:st.p90,ppm:Math.round(arcadeRun.score/Math.max(1,(Date.now()-arcadeRun.start)/60000)),themes:st.themes,order:settings.arcadeOrder||'random',filter:seqKey()}); prog.arcade.highscores.sort((a,b)=>b.score-a.score); prog.arcade.highscores=prog.arcade.highscores.slice(0,10); saveProg();
+    const rank=prog.arcade.highscores.findIndex(h=>h.score===arcadeRun.score)+1; toast(rank===1?'🏆 New best: '+arcadeRun.score:'Run saved: '+arcadeRun.score+' points (rank '+rank+')'); }
+  arcadeRun={score:0,solved:0,best:0,seen:new Set(),start:Date.now()}; streak=0; prog.arcade.run=null; saveProg(); renderHud(); }
+function showCalib(){ const m=$('mode').value; const on=(settings.calib||'0')==='1' && (m==='sr'||m==='wood') && !calib; $('calibRow').classList.toggle('hidden',!on); document.querySelectorAll('#calibRow button').forEach(b=>b.classList.toggle('p',b.dataset.cal===calib)); }
+function hideCalib(){ $('calibRow').classList.add('hidden'); }
+document.querySelectorAll('#calibRow button').forEach(b=>b.onclick=()=>{ if(ply>firstUserPly||solved) return; calib=b.dataset.cal; saveResume(); showCalib(); hideCalib(); toast(calib==='sure'?'Sure':'Unsure'); });
+function showPts(t){ const e=$('pts'); e.textContent=t; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); }
+function saveSettings(){ LS.set('tt_settings', settings); cloudDirty(); }
+const today = ()=> new Date().toISOString().slice(0,10);
+const now = ()=> Date.now();
+const DAY=86400000;
+
+// ---------- FSRS-5 (Free Spaced Repetition Scheduler) ----------
+// Karte: s = Stabilität (Tage bis Abrufwahrscheinlichkeit 90 %), d = Schwierigkeit 1–10, due = Fälligkeit (ms)
+const FW=[0.4072,1.1829,3.1262,15.4722,7.2102,0.5316,1.0651,0.0234,1.616,0.1544,1.0824,1.9813,0.0953,0.2975,2.2042,0.2407,2.9466,0.5034,0.6567];
+const F_DECAY=-0.5, F_FACTOR=19/81;
+const fR=(t,S)=>Math.pow(1+F_FACTOR*t/S, F_DECAY);                       // Abrufwahrscheinlichkeit nach t Tagen
+const MAX_IV=180; // Taktik: nie länger als ein halbes Jahr weg
+const fInterval=(S,rd)=>Math.min(MAX_IV, Math.max(1, Math.round(S/F_FACTOR*(Math.pow(rd,1/F_DECAY)-1))));
+const clampD=d=>Math.min(10,Math.max(1,d));
+const fInitS=g=>FW[g-1];
+const fInitD=g=>clampD(FW[4]-Math.exp(FW[5]*(g-1))+1);
+function fNextD(d,g){ const dd=d-FW[6]*(g-3); return clampD(FW[7]*fInitD(4)+(1-FW[7])*dd); }
+function fNextS(d,s,r,g){ if(g===1) return Math.min(s, FW[11]*Math.pow(d,-FW[12])*(Math.pow(s+1,FW[13])-1)*Math.exp(FW[14]*(1-r)));
+  return s*(Math.exp(FW[8])*(11-d)*Math.pow(s,-FW[9])*(Math.exp(FW[10]*(1-r))-1)*(g===2?FW[15]:1)*(g===4?FW[16]:1)+1); }
+const fShortS=(s,g)=>s*Math.exp(FW[17]*(g-3+FW[18]));                    // Wiederholung am selben Tag
+function card(id){ let c=prog.cards[id]; if(!c) c=prog.cards[id]={s:0,d:0,iv:0,due:0,last:0,seen:0,ok:0,fail:0,times:[],lapses:0,errs:{first:0,calc:0,hint:0,slow:0},cal:{sc:0,sw:0,uc:0,uw:0}};
+  if(c.s===undefined){ // Migration aus SM-2 (ef/iv)
+    c.s=Math.max(0.5,c.iv||1); c.d=clampD(11-8*((c.ef||2.5)-1.3)/1.2); c.last=c.due?c.due-(c.iv||0)*DAY:0; delete c.ef; delete c.reps; }
+  c.errs=c.errs||{first:0,calc:0,hint:0,slow:0}; c.cal=c.cal||{sc:0,sw:0,uc:0,uw:0}; return c; }
+// g: 1 = Again (vergessen), 2 = Hard (schwer), 3 = Good, 4 = Easy;  meta: {err:'first'|'calc'|'hint'|'slow', cal:'sure'|'unsure'}
+function review(id, g, secs, meta){
+  const c=card(id); const t=now(); const rd=settings.retention||0.85;
+  c.seen++; if(g>=2) c.ok++; else { c.fail++; c.lapses++; }
+  if(secs!=null){ c.times.push(Math.round(secs)); if(c.times.length>20) c.times.shift(); }
+  if(meta&&meta.err) c.errs[meta.err]=(c.errs[meta.err]||0)+1;
+  if(meta&&meta.cal){ const k=(meta.cal==='sure'?'s':'u')+(g>=2?'c':'w'); c.cal[k]=(c.cal[k]||0)+1; }
+  const elapsedDays=c.last?(t-c.last)/DAY:0;
+  if(!c.s||c.seen===1){ c.s=fInitS(g); c.d=fInitD(g); }
+  else if(elapsedDays<1){ c.s=fShortS(c.s,g); c.d=fNextD(c.d,g); }
+  else { const r=fR(elapsedDays,c.s); c.d=fNextD(c.d,g); c.s=fNextS(c.d,c.s,r,g); }
+  c.s=Math.max(0.1,c.s); c.last=t;
+  if(g===1){ c.iv=0; c.due=t+10*60*1000; }                         // erst in 10 Minuten nochmal, dann regulär
+  else { c.iv=fInterval(c.s,rd); c.due=t+c.iv*DAY; }
+  const d=today(); prog.days[d]=prog.days[d]||{n:0,ok:0,new:0}; prog.days[d].n++; if(g>=2) prog.days[d].ok++;
+  prog.log.push([t, id, g, Math.round(secs||0), meta&&meta.err||'']); if(prog.log.length>5000) prog.log.shift();
+  saveProg();
+}
+const GRADE_LABEL={1:'Forgot',2:'Hard',3:'Good',4:'Easy'};
+const ERR_LABEL={first:'pattern not seen',calc:'calculation error',hint:'with hint',slow:'slow'};
+function autoGrade(secs){ // Bewertung aus Fehlertyp, Tipp, Zeit und Kalibrierung
+  let err=null, g;
+  if(hadError) err = (errAtPly===firstUserPly) ? 'first' : 'calc';
+  else if(usedHint) err='hint';
+  else if(secs>3*settings.fastSec) err='slow';
+  g = err==='first'?1 : err?2 : secs<=settings.fastSec?4 : 3;
+  if(calib==='sure' && hadError) g=1;                              // sicher und falsch: Muster ist falsch gelernt
+  if(calib==='unsure' && !hadError && g>3) g=3;                     // unsicher und richtig: nicht als "leicht" werten
+  return {g, err};
+}
+function filtered(){
+  const f=settings.filter; const md=$('mode')&&$('mode').value; const fs=(md!=='study'&&/^(Meisterpartien|Eröffnung)/.test(f.set||''))?'':f.set;   // Studium-Sets (Meisterpartien, Eröffnungslinien) als Filter gelten nur im Studium – sonst bliebe für Taktik-Modi nichts übrig
+    return puzzles.filter(p=>(!p.game||md==='study')&&p.set!=='Meisterpuzzles: Jobava London'&&(!fs||(p.set||'Starter set')===fs)&&(!f.theme||p.theme===f.theme)&&(f.min===''||p.rating>=+f.min)&&(f.max===''||p.rating<=+f.max));
+}
+// Reihenfolge: Fällige nach Fälligkeit, aber am selben Tag fällige gemischt; neue Puzzles in gemischter Reihenfolge (fester Zufalls-Schlüssel pro Puzzle, damit Themen und Ratings durcheinander kommen statt in Import-Reihenfolge)
+prog.salt = prog.salt || Math.random().toString(36).slice(2);
+function shuffleKey(id){ let h=0; for(const ch of id+prog.salt) h=(h*31+ch.charCodeAt(0))|0; return (h>>>0); }
+function dueList(){ const t=now(); const day=d=>Math.floor(d/86400000); return filtered().filter(p=>{const c=prog.cards[p.id]; return c&&c.seen>0&&c.due<=t;}).sort((a,b)=>(day(prog.cards[a.id].due)-day(prog.cards[b.id].due)) || (shuffleKey(a.id)-shuffleKey(b.id))); }
+function newList(){ return filtered().filter(p=>!prog.cards[p.id]||prog.cards[p.id].seen===0).sort((a,b)=>shuffleKey(a.id)-shuffleKey(b.id)); }
+function newToday(){ return (prog.days[today()]||{}).new||0; }
+
+// ---------- board UI ----------
+const boardEl=document.getElementById('board');
+let pos=null, orient='w', sel=null, lastMove=null, hintSq=null, locked=true, marks={};
+function render(){
+  boardEl.innerHTML='';
+  const tg = sel!=null ? legalTargets(pos, sel) : [];
+  for(let k=0;k<64;k++){
+    const i = orient==='w'?k:63-k;
+    const r=Math.floor(i/8), f=i%8;
+    const d=document.createElement('div');
+    d.className='sq '+(((r+f)%2)?'d':'l');
+    if(sel===i) d.classList.add('sel');
+    if(lastMove&&(lastMove[0]===i||lastMove[1]===i)) d.classList.add('last');
+    if(hintSq===i) d.classList.add('hint');
+    if(marks[i]) d.classList.add(marks[i]);
+    if(pos.b[i]) d.innerHTML=pieceSVG(pos.b[i]);
+    if(tg.includes(i)) d.innerHTML += pos.b[i]?'<div class="cap"></div>':'<div class="dot"></div>';
+    if(settings.coords==='1'){
+      const isLastRow = k>=56, isFirstCol = k%8===0;
+      if(isLastRow) d.innerHTML+=`<span class="coord cf">${FILES[f]}</span>`;
+      if(isFirstCol) d.innerHTML+=`<span class="coord cr">${8-r}</span>`;
+    }
+    d.dataset.i=i; d.onclick=()=>onSquare(i);
+    boardEl.appendChild(d);
+  }
+}
+
+const $=id=>document.getElementById(id);
+// ---------- animation / effects ----------
+function sqEl(i){ return boardEl.querySelector(`[data-i="${i}"]`); }
+function animateMove(from, to, piece){
+  return new Promise(res=>{
+    const a=sqEl(from), b=sqEl(to); if(!a||!b){ res(); return; }
+    const wrap=boardEl.parentElement, wr=wrap.getBoundingClientRect(), ar=a.getBoundingClientRect(), br=b.getBoundingClientRect();
+    const fly=document.createElement('div'); fly.className='fly'; fly.style.width=ar.width+'px'; fly.style.height=ar.height+'px';
+    fly.style.left=(ar.left-wr.left)+'px'; fly.style.top=(ar.top-wr.top)+'px'; fly.innerHTML=pieceSVG(piece);
+    wrap.appendChild(fly); a.classList.add('ghost');
+    requestAnimationFrame(()=>{ fly.style.transform=`translate(${br.left-ar.left}px,${br.top-ar.top}px)`; });
+    setTimeout(()=>{ fly.remove(); res(); }, 230);
+  });
+}
+const AC = { ctx:null, get(){ try{ if(!this.ctx) this.ctx=new (window.AudioContext||window.webkitAudioContext)(); if(this.ctx.state==='suspended') this.ctx.resume(); return this.ctx; }catch(e){ return null; } } };
+function tone(f, dur, type='sine', vol=.08, delay=0){ if((settings.fxOn??'1')!=='1') return; const c=AC.get(); if(!c) return; const o=c.createOscillator(), g=c.createGain(); o.type=type; o.frequency.value=f; g.gain.setValueAtTime(0,c.currentTime+delay); g.gain.linearRampToValueAtTime(vol,c.currentTime+delay+.01); g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+delay+dur); o.connect(g); g.connect(c.destination); o.start(c.currentTime+delay); o.stop(c.currentTime+delay+dur+.05); }
+function sndMove(){ tone(520,.06,'triangle',.05); }
+function sndGood(){ tone(660,.12,'sine',.07); tone(880,.14,'sine',.07,.08); }
+function sndWin(level=0){ const seq=level>=8?[523,659,784,1047,1319,1568,2093]:level>=5?[523,659,784,1047,1319]:[523,659,784,1047]; seq.forEach((f,i)=>tone(f,.22,'sine',.08,i*.08)); if(level>=5) seq.forEach((f,i)=>tone(f*1.5,.3,'triangle',.03,i*.08+.04)); }
+function sndBad(){ tone(180,.18,'sawtooth',.05); }
+function buzz(ms){ try{ navigator.vibrate&&navigator.vibrate(ms); }catch(e){} }
+// fireworks
+const fx=$('fx'); const fxc=fx.getContext('2d'); let parts=[], fxRun=false, fxPending=0;
+function later(fn,ms){ fxPending++; setTimeout(()=>{ try{ fn(); } finally { fxPending--; } },ms); }
+function fireworks(n=3, level=0){
+  // level = Serienlänge: mehr Salven, längere Lebensdauer, ab 3 Streamer, ab 5 Goldregen, ab 8 Ringe + Sterne
+  if(settings.fxOn==='0') return;
+  const w=fx.parentElement.getBoundingClientRect(); fx.width=w.width*1.4; fx.height=w.height*1.4;
+  const colors=['#ffd166','#ef476f','#06d6a0','#118ab2','#fff','#f78c6b','#c77dff','#80ffdb'];
+  const bursts=n+Math.min(level,10), gap=level>=5?160:220;
+  for(let k=0;k<bursts;k++){ later(()=>{ const cx=fx.width*(0.15+Math.random()*0.7), cy=fx.height*(0.15+Math.random()*0.5); const col=colors[Math.floor(Math.random()*colors.length)];
+    const cnt=70+Math.min(level,10)*8, life=90+Math.min(level,10)*10;
+    for(let i=0;i<cnt;i++){ const a=Math.random()*Math.PI*2, s=2+Math.random()*(5+level*0.3); parts.push({x:cx,y:cy,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:life+Math.random()*40,col:Math.random()<.7?col:colors[Math.floor(Math.random()*colors.length)],r:1.5+Math.random()*2.5,shape:level>=8&&Math.random()<.25?'star':'dot'}); }
+    if(level>=8){ for(let i=0;i<60;i++){ const a=i/60*Math.PI*2; parts.push({x:cx,y:cy,vx:Math.cos(a)*7,vy:Math.sin(a)*7,life:120,col:'#fff',r:2,shape:'dot',ring:true}); } }
+  }, k*gap); }
+  if(level>=3){ for(let i=0;i<8+level*2;i++){ later(()=>{ parts.push({x:fx.width*Math.random(),y:fx.height,vx:(Math.random()-.5)*1.5,vy:-9-Math.random()*5,life:150,col:colors[Math.floor(Math.random()*colors.length)],r:2.5,shape:'streamer',trail:[]}); }, i*90); } }
+  if(level>=5){ for(let i=0;i<120;i++){ later(()=>{ parts.push({x:fx.width*Math.random(),y:-10,vx:(Math.random()-.5)*2,vy:2+Math.random()*3,life:200,col:Math.random()<.6?'#ffd166':'#fff',r:1.5+Math.random()*2,shape:Math.random()<.5?'confetti':'dot',rot:Math.random()*6,spin:(Math.random()-.5)*.3,grav:0.02}); }, 300+i*20); } }
+  if(level>=5){ boardEl.classList.add('shakeSoft'); setTimeout(()=>boardEl.classList.remove('shakeSoft'),900); }
+  if(!fxRun){ fxRun=true; requestAnimationFrame(fxStep); }
+}
+function fxStep(){
+  fxc.clearRect(0,0,fx.width,fx.height);
+  parts=parts.filter(p=>p.life>0);
+  for(const p of parts){
+    if(p.shape==='streamer'){ p.trail.push([p.x,p.y]); if(p.trail.length>14) p.trail.shift(); if(p.life<120 && p.life>118){ for(let i=0;i<40;i++){ const a=Math.random()*Math.PI*2, s=1.5+Math.random()*4; parts.push({x:p.x,y:p.y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:70,col:p.col,r:1.5+Math.random()*1.5,shape:'dot'}); } p.life=0; continue; } }
+    p.x+=p.vx; p.y+=p.vy; p.vy+=(p.grav??(p.ring?.02:.08)); p.vx*=.985; p.vy*=.985; p.life--; if(p.spin) p.rot+=p.spin;
+    fxc.globalAlpha=Math.max(0,Math.min(1,p.life/45)); fxc.fillStyle=p.col; fxc.strokeStyle=p.col;
+    if(p.shape==='streamer'){ fxc.lineWidth=2; fxc.beginPath(); p.trail.forEach(([x,y],i)=>i?fxc.lineTo(x,y):fxc.moveTo(x,y)); fxc.stroke(); }
+    else if(p.shape==='confetti'){ fxc.save(); fxc.translate(p.x,p.y); fxc.rotate(p.rot); fxc.fillRect(-3,-1.5,6,3); fxc.restore(); }
+    else if(p.shape==='star'){ fxc.save(); fxc.translate(p.x,p.y); fxc.beginPath(); for(let i=0;i<10;i++){ const r=i%2?p.r*1.2:p.r*3, a=i*Math.PI/5; fxc.lineTo(Math.cos(a)*r,Math.sin(a)*r); } fxc.closePath(); fxc.fill(); fxc.restore(); }
+    else { fxc.beginPath(); fxc.arc(p.x,p.y,p.r,0,Math.PI*2); fxc.fill(); }
+  }
+  fxc.globalAlpha=1;
+  if(parts.length||fxPending>0) requestAnimationFrame(fxStep); else { fxRun=false; fxc.clearRect(0,0,fx.width,fx.height); }
+}
+let streak=0;
+function showCombo(text, level=0){ const c=$('combo'); c.textContent=text; c.style.fontSize=Math.min(42+Math.min(level,10)*2, boardEl.getBoundingClientRect().width/9)+'px'; c.style.setProperty('--dur',(1.4+Math.min(level,10)*0.12)+'s'); c.classList.remove('on','gold'); void c.offsetWidth; c.classList.add('on'); if(level>=5) c.classList.add('gold'); }
+
+// ---------- training state ----------
+let wrongTried=[], waitT=0, hidT=0, loadTok=0, errAtPly=null, firstUserPly=0, calib=null, lastTheme='', lastSide='', cur=null, line=[], ply=0, startT=0, usedHint=false, hadError=false, solved=false, session={n:0,ok:0}, queueKind='';
+function setMsg(m,s){ $('msg').textContent=m; $('sub').textContent=s||''; }
+function toast(t){ const e=$('toast'); e.textContent=t; e.classList.add('on'); setTimeout(()=>e.classList.remove('on'),1800); }
+
+// Stapel ohne Zurücklegen, je Modus eigener Stapel: gezogen = Eintrag im Ereignis-Log (wird in die Cloud gesichert, gilt also über Runs und Geräte hinweg).
+// Gezogen wird immer aus den Puzzles mit den wenigsten Einträgen in diesem Modus – jedes kommt erst wieder, wenn alle im Filter einmal dran waren.
+function stackPool(mode, list){ const c={}; for(const e of (prog.events||[])) if(e.mode===mode) c[e.id]=(c[e.id]||0)+1;
+  let min=Infinity; for(const p of list){ const n=c[p.id]||0; if(n<min) min=n; }
+  let pool=list.filter(p=>(c[p.id]||0)===min); const pos=list.length-pool.length+1;
+  if(pool.length>1 && cur){ const q=pool.filter(p=>p.id!==cur.id); if(q.length) pool=q; }
+  return {pool, pos, total:list.length, round:min+1}; }
+// ---------- Adaptiv-Modus (nach ARTS, Mettler & Kellman): Priorität je Puzzle aus Fehler + Denkzeit, wächst mit dem Abstand ----------
+// Denkzeit = Gesamtzeit − Wartezeit auf Gegnerzüge − Eingabezeit (2 Tipps je eigenem Zug). Ziel wächst mit der Zugzahl: 1 Zug = Zeit-Schwelle, je weiterer Zug +50 %.
+const ARTS={a:0.1,b:1.1,r:3,W:20,D:2,NEW:10,RET:3,TAP:0.8};
+function artsMoves(p){ return Math.max(1, Math.ceil((p.moves.length-(p.premove?1:0))/2)); }
+function artsTarget(p){ return settings.fastSec*(1+0.5*(artsMoves(p)-1)); }
+function artsNet(p,secs){ return Math.max(0.5, secs-waitT/1000-ARTS.TAP*artsMoves(p)-0.23); }
+function artsState(){ const st={}; let n=0;
+  for(const e of (prog.events||[])) if(e.mode==='arts'){ n++; const s=st[e.id]||(st[e.id]={n:0,streak:0,day:''}); s.last=n; s.n++; s.ok=!!e.ok&&!e.reveal; s.hint=!!e.hint; s.rho=e.rho;
+    if(!s.ok){ s.streak=0; s.day=''; } else if(!s.hint && e.rho!=null && e.rho<=1 && e.d!==s.day){ s.streak++; s.day=e.d; }
+    s.ret=s.streak>=ARTS.RET; }
+  return {st,n}; }
+function artsTerm(s){ if(!s.ok) return ARTS.W; if(s.hint) return ARTS.W/2; return Math.max(0.15, ARTS.b*Math.log(ARTS.r*Math.max(s.rho==null?1:s.rho,0.01))); }
+function artsPrio(s,n){ const N=n-s.last; return N<=ARTS.D ? -1 : ARTS.a*(N-ARTS.D)*artsTerm(s); }
+function artsGap(s){ return Math.round(ARTS.D+ARTS.NEW/(ARTS.a*artsTerm(s))); }
+function artsList(){ return filtered().filter(p=>!isOpening(p)); }
+// Mini-Games: bis zu 5 Puzzles einer Kategorie (Motiv oder Markierung) am Stück, schwächste zuerst
+let mini=null; const MG_LEN=5;
+function themeName(t){ return String(t||'').replace(/([a-z])([A-Z0-9])/g,'$1 $2').replace(/^./,c=>c.toUpperCase()); }
+function mgCats(){ const list=artsList(); const by={}; for(const p of list){ const t=p.theme||''; if(t) (by[t]=by[t]||[]).push(p); }
+  const cats=Object.keys(by).filter(t=>by[t].length>=3).sort((a,b)=>themeName(a).localeCompare(themeName(b))).map(t=>({key:'t:'+t, label:themeName(t)+' Training', icon:'🎯', list:by[t]}));
+  const tact=puzzles.filter(p=>!p.game&&!isOpening(p)&&p.set!=='Meisterpuzzles: Jobava London');
+  const piles=[['m','🧺','Blunder Pile Training',tact.filter(p=>isMiss(p.id))],['w','🤯','Mind-Blowing Training',tact.filter(p=>isWow(p.id))],['s','💣','Brain Breakers Training',tact.filter(p=>isSpr(p.id))]].filter(x=>x[3].length).map(x=>({key:'p:'+x[0],icon:x[1],label:x[2],list:x[3]}));
+  return piles.concat(cats); }
+function mgFill(){ const sel=$('mgSel'); const cats=mgCats(); const sig=cats.map(c=>c.key+c.list.length).join('|'); if(sel.dataset.sig===sig) return; const v=sel.value; sel.dataset.sig=sig;
+  sel.innerHTML=cats.map(c=>'<option value="'+c.key+'">'+c.icon+' '+c.label+' ('+c.list.length+')</option>').join(''); if(cats.some(c=>c.key===v)) sel.value=v; }
+function mgStart(key, queued){ const c=mgCats().find(x=>x.key===key); if(!c) return false; const {st}=artsState();
+  const w=p=>{ const s=st[p.id]; return (s ? (s.ret?-1:artsTerm(s)) : 3)+Math.random()*0.5; };   // falsch > Tipp > neu > langsam > schnell > automatisiert
+  const ids=c.list.filter(p=>!cur||p.id!==cur.id||c.list.length<=1).map(p=>[w(p),p.id]).sort((a,b)=>b[0]-a[0]).slice(0,MG_LEN).map(x=>x[1]); if(!ids.length) return false;
+  mini={key, label:c.label, icon:c.icon, ids, i:0, res:[]}; $('mgInfo').textContent=''; mgUI(); if(!queued) load(pick()); return true; }
+function mgStop(msg){ mini=null; mgUI(); if(msg) $('mgInfo').textContent=msg; }
+const MG_EVERY=15;   // Mini-Game als Ereignis: nach so vielen richtigen Lösungen in Folge; danach beginnt die Serie wieder bei 0
+function mgUI(){ $('mgBar').classList.toggle('hidden', !mini); $('mgNow').textContent=mini?mini.icon+' '+mini.label+' in progress':''; }
+function mgAutoKey(){ const cats=mgCats().filter(c=>c.key.startsWith('t:')); if(!cats.length) return null; const by={}; for(const e of (prog.events||[])) if(e.mode==='arts'&&e.theme){ const s=by[e.theme]||(by[e.theme]={n:0,bad:0}); s.n++; s.bad+=(!e.ok||e.reveal)?1:(e.hint?0.7:(e.rho>1?0.4:0)); }
+  const scored=cats.filter(c=>c.key!==prog.artsLastMg).map(c=>{ const s=by[c.key.slice(2)]; return [s&&s.n>=3?s.bad/s.n:-1, c.key]; }); if(!scored.length) return cats[0].key;
+  const known=scored.filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]); if(known.length) return known[0][1];   // schwächstes Motiv zuerst
+  return scored[Math.floor(Math.random()*scored.length)][1]; }
+function mgStreak(clean){ if(!clean){ prog.artsRun=0; saveProg(); return; } prog.artsRun=(prog.artsRun||0)+1;
+  if(prog.artsRun>=MG_EVERY){ prog.artsRun=0; const key=mgAutoKey(); if(key && mgStart(key,true)){ prog.artsLastMg=key; const msg='🎉 '+MG_EVERY+' correct in a row – mini-game: '+mini.label+'!'; $('mgInfo').textContent=msg; toast(msg); } } saveProg(); }
+function mgFinish(){ const n=mini.res.length; if(!n){ mgStop(''); return; } const okc=mini.res.filter(r=>r.ok).length; const ts=mini.res.filter(r=>r.net!=null).map(r=>r.net); const avg=ts.length?Math.round(ts.reduce((a,b)=>a+b,0)/ts.length):0;
+  const msg=mini.icon+' '+mini.label+' done: '+okc+'/'+n+' clean'+(ts.length?' · avg think time '+avg+' s':'')+(okc===n&&n>1?' – perfect!':''); toast(msg); if(okc===n&&n>1) fireworks(4, 6); mgStop(msg); }
+function mgRecord(ok, net){ if(!mini||!cur||cur.id!==mini.ids[mini.i]) return; mini.res.push({ok,net}); mini.i++; if(mini.i>=mini.ids.length) mgFinish(); }
+function artsPick(){ if(mini){ if(cur && !solved && cur.id===mini.ids[mini.i] && mini.shown===mini.i) mini.i++;   // „Weiter“ ohne Lösen überspringt das Puzzle
+    while(mini.i<mini.ids.length){ const p=puzzles.find(x=>x.id===mini.ids[mini.i]); if(p){ mini.shown=mini.i; queueKind=mini.icon+' '+mini.label+' · '+(mini.i+1)+'/'+mini.ids.length; return p; } mini.i++; }
+    mgFinish(); }
+  const list=artsList(); if(!list.length){ queueKind='Adaptive · no tactics puzzles in the filter'; return null; }
+  const {st,n}=artsState(); const rnd=a=>a[Math.floor(Math.random()*a.length)]; const notCur=a=>{ const q=a.filter(p=>!cur||p.id!==cur.id); return q.length?q:a; };
+  const fresh=list.filter(p=>!st[p.id]); const live=list.filter(p=>st[p.id]&&!st[p.id].ret);
+  let best=-Infinity, top=[]; for(const p of live){ const v=artsPrio(st[p.id],n); if(v>best+1e-9){ best=v; top=[p]; } else if(Math.abs(v-best)<=1e-9) top.push(p); }
+  const why=p=>{ const s=st[p.id]; return 'Adaptive · repeat – last time '+(!s.ok?'wrong':s.hint?'with a hint':s.rho<=1?'fast':'slow')+', '+(n-s.last)+' puzzles ago'; };
+  if(top.length && best>=ARTS.NEW){ const p=rnd(notCur(top)); queueKind=why(p); return p; }
+  if(fresh.length && LEVELS){ const R=plRating(); let win=fresh.filter(p=>p.rating>=R-300&&p.rating<=R-100); if(!win.length) win=fresh.slice().sort((a,b)=>Math.abs(a.rating-(R-200))-Math.abs(b.rating-(R-200))).slice(0,40); const dv=win.filter(p=>(p.theme||'')!==lastTheme); queueKind='Adaptive · new puzzle at your level'; return rnd(notCur(dv.length?dv:win)); }
+  if(fresh.length){ const diff=fresh.filter(p=>(p.theme||'')!==lastTheme); queueKind='Adaptive · new ('+fresh.length+' of '+list.length+' still unseen)'; return rnd(notCur(diff.length?diff:fresh)); }
+  if(top.length && best>0){ const p=rnd(notCur(top)); queueKind=why(p); return p; }
+  if(live.length){ const p=rnd(notCur(live)); queueKind=why(p); return p; }
+  queueKind='Adaptive · everything automated'; return null; }
+function artsHud(){ const list=artsList(); const {st}=artsState(); let fresh=0,ret=0,live=0; for(const p of list){ const s=st[p.id]; if(!s) fresh++; else if(s.ret) ret++; else live++; }
+  const ev=(prog.events||[]).filter(e=>e.mode==='arts'&&e.d===today()); const fast=ev.filter(e=>e.ok&&!e.hint&&!e.reveal&&e.rho<=1).length, okc=ev.filter(e=>e.ok&&!e.reveal).length;
+  $('artsInfo').textContent='Unseen '+fresh+' · in rotation '+live+' · automated '+ret+' · today '+ev.length+(ev.length?' ('+okc+' correct, '+fast+' at target speed)':'')+' · streak '+(prog.artsRun||0)+'/'+MG_EVERY+' to the mini-game'; }
+function artsFeedback(secs, reveal){ const p=cur; const s=artsState().st[p.id]; if(!s) return; const mv=artsMoves(p), net=artsNet(p,secs), tg=artsTarget(p);
+  const back=' – back in about '+artsGap(s)+' puzzles';
+  if(reveal){ $('sub').textContent='Solution shown'+back; return; }
+  const t='Think time '+Math.round(net)+' s · target '+Math.round(tg)+' s ('+mv+(mv===1?' move':' moves')+')';
+  $('sub').textContent = !s.ok ? t+' · mistake'+back : s.hint ? t+' · with a hint'+back : s.ret ? t+' · at target speed ✓ '+ARTS.RET+'/'+ARTS.RET+' – automated, out of the stack' : s.rho<=1 ? t+' · at target speed ✓ ('+s.streak+'/'+ARTS.RET+' days)'+back : t+' · correct but slow'+back; }
+// ---------- Spielstärke-Stufen (nur öffentliche Version): Rating-Bänder nachladen, eigenes Puzzle-Rating führen ----------
+const LEVEL_OPTS=[[800,'Beginner','I know the rules'],[1100,'Casual','I play now and then'],[1400,'Club player','I play regularly'],[1700,'Advanced','Strong club level'],[2000,'Expert','Tournament player'],[2300,'Master','Titled level']];
+const BAND_LO=600, BAND_HI=2600, bandLoaded={};
+function plRating(){ return Math.round(prog.rating||settings.level||1400); }
+function bandOf(r){ return Math.max(BAND_LO, Math.min(BAND_HI, Math.floor(r/100)*100)); }
+function bandName(b){ return b>=BAND_HI ? 'Rating '+BAND_HI+'+' : b<=BAND_LO ? 'Rating up to '+(BAND_LO+99) : 'Rating '+b+'–'+(b+99); }
+function bandsNeeded(){ const R=plRating(), s=new Set(prog.bands||[]); for(let b=bandOf(R-300); b<=bandOf(R+100); b+=100) s.add(b); return [...s]; }
+function loadBands(){ const need=bandsNeeded().filter(b=>bandLoaded[b]!==true && bandLoaded[b]!=='loading');
+  return Promise.all(need.map(b=>{ bandLoaded[b]='loading'; return fetch('data/band-'+b+'.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(arr=>{ const ids=new Set(puzzles.map(p=>p.id)), name=bandName(b);
+      for(const p of arr) if(!ids.has(p.id)) puzzles.push({id:p.id, fen:p.fen, moves:p.moves, theme:p.theme, rating:p.rating, premove:true, set:name, src:'band', url:'https://lichess.org/training/'+p.id});
+      bandLoaded[b]=true; }).catch(()=>{ bandLoaded[b]=false; }); })).then(()=>need.length); }
+function levelInfo(delta){ const el=$('levelInfo'); if(!LEVELS||!el) return; el.classList.remove('hidden'); const R=plRating();
+  el.textContent='Your puzzle rating: '+R+(delta?' ('+(delta>0?'+':'')+delta+')':'')+' · new puzzles around '+Math.max(BAND_LO,R-200); }
+function levelUpdate(o){ if(!LEVELS||!cur||cur.src!=='band') return; const b=bandOf(cur.rating); prog.bands=prog.bands||[]; if(!prog.bands.includes(b)) prog.bands.push(b);
+  if(prog.events.filter(e=>e.id===cur.id).length>1) return;                     // nur der erste Versuch an einem Puzzle zählt fürs Rating
+  const R=prog.rating||settings.level||1400, n=prog.ratingN||0; const S=(o.ok&&!o.reveal)?(o.hint?0.5:1):0; const E=1/(1+Math.pow(10,(cur.rating-R)/400)); const K=n<15?56:n<50?32:20;
+  const nr=Math.max(400, Math.min(3000, R+K*(S-E))); const d=Math.round(nr)-Math.round(R); prog.rating=nr; prog.ratingN=n+1; levelInfo(d);
+  if(bandsNeeded().some(x=>bandLoaded[x]!==true)) loadBands().then(k=>{ if(k){ renderSets(); updateStats(); } }); }
+function levelSet(v){ settings.level=v; prog.rating=v; prog.ratingN=0; saveSettings(); saveProg(); $('levelBox').classList.add('hidden'); levelStart(true); }
+function levelStart(fresh){ setMsg('Loading puzzles …',''); loadBands().then(()=>{ wpReady=true; renderSets(); updateStats(); renderHud(); levelInfo(0);
+    if(!puzzles.some(p=>p.src==='band')){ setMsg('The puzzles could not be loaded','Check your connection and reload the page.'); return; }
+    if(fresh){ prog.resume=null; load(pick()); } else if(!cur) resumeOrPick(); }); }
+function levelInit(){ const box=$('levelBtns'); box.innerHTML=LEVEL_OPTS.map(o=>'<button class="b" data-l="'+o[0]+'" style="text-align:left;padding:10px 12px"><b>'+o[1]+'</b><br><small style="opacity:.75">'+o[2]+' · about '+o[0]+'</small></button>').join('');
+  box.querySelectorAll('button').forEach(b=>b.onclick=()=>levelSet(+b.dataset.l));
+  const sel=$('levelSel'); sel.innerHTML='<option value="">keep my current rating</option>'+LEVEL_OPTS.map(o=>'<option value="'+o[0]+'">'+o[1]+' (about '+o[0]+')</option>').join(''); sel.classList.remove('hidden'); $('levelLbl').classList.remove('hidden');
+  sel.onchange=()=>{ if(sel.value){ levelSet(+sel.value); toast('Level set to '+sel.options[sel.selectedIndex].text); sel.value=''; } };
+  if(prog.rating||settings.level) levelStart(false); else { $('levelBox').classList.remove('hidden'); setMsg('Choose your level','Pick a starting level above to get your first puzzle.'); } }
+function pick(){
+  const mode=$('mode').value;
+  if(mode==='master'){ const ml=puzzles.filter(p=>p.set==='Meisterpuzzles: Jobava London'); if(!ml.length) return null; const s=stackPool('master',ml); queueKind='Meisterpuzzles · Stapel '+s.pos+'/'+s.total+(s.round>1?' · round '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
+  const fl=filtered(); if(!fl.length){ return null; }
+  if(mode==='random'){ const s=stackPool('random',fl); queueKind='Random · stack '+s.pos+'/'+s.total+(s.round>1?' · round '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
+  if(mode==='arts') return artsPick();
+  if(mode==='arcade'){ const fa=fl.filter(p=>!isOpening(p)); if(!fa.length){ queueKind='Arcade · no tactics puzzles in the filter'; return null; }   // Eröffnungslinien gehören ins Studium, nicht ins Arcade
+    { const r=prog.arcade.retry||[]; const ids=new Set(fa.map(p=>p.id)); const k=r.findIndex(x=>x.left<=0&&ids.has(x.id)); if(k>=0){ const id=r[k].id; r.splice(k,1); saveProg(); queueKind='Arcade · 🔁 repeat (wrong '+ARC_RETRY+' puzzles ago)'; return fa.find(p=>p.id===id); } }
+    if((settings.arcadeOrder||'random')==='seq'){ const i=seqPos(); if(i>=fa.length){ queueKind='Arcade · set complete'; return null; } queueKind='Arcade · '+(i+1)+'/'+fa.length; return fa[i]; }
+    const s=stackPool('arcade',fa); queueKind='Arcade · stack '+s.pos+'/'+s.total+(s.round>1?' · round '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
+  if(mode==='study'){ const sl=studyLines(); if(!sl.length) return null; const i=(prog.study.idx||0)%sl.length; prog.study.idx=i; queueKind='Studium · Linie '+(i+1)+'/'+sl.length; return sl[i]; }
+  if(mode==='wow'){ const sl=wowList(); if(!sl.length){ queueKind='Mind-Blowing · empty'; return null; } const s=stackPool('wow',sl); queueKind='🤯 Mind-Blowing · stack '+s.pos+'/'+s.total+(s.round>1?' · round '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
+  if(mode==='sprenger'){ const sl=sprList(); if(!sl.length){ queueKind='Brain Breakers · empty'; return null; } const s=stackPool('sprenger',sl); queueKind='💣 Brain Breakers · stack '+s.pos+'/'+s.total+(s.round>1?' · round '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
+  if(mode==='misses'){ const all=missList(); const ml=all.filter(p=>prog.misses[p.id].okDay!==today()); if(!ml.length){ queueKind='Blunder Pile · '+(all.length?'done for today':'empty'); return null; } queueKind='Blunder Pile · '+ml.length+' open today'+(all.length>ml.length?' · '+(all.length-ml.length)+' already solved today':''); const top=ml.slice(0,Math.min(5,ml.length)); return top[Math.floor(Math.random()*top.length)]; }
+  if(mode==='wood'){ const w=prog.wood; woodNewDay(fl);
+    if(w.slowQueue.length){ const id=w.slowQueue[0]; const p=fl.find(x=>x.id===id); if(p){ queueKind='Cycle '+w.cycle+' · slow repeats '+(w.slowTotal-w.slowQueue.length+1)+'/'+w.slowTotal; return p; } w.slowQueue.shift(); }
+    const goal=woodGoal(fl); const doneNew=w.dayDone-w.slowTotal;
+    if(goal && doneNew===goal && !w.goalToast){ w.goalToast=today(); toast('Daily goal reached ('+goal+') – keep going as long as you like'); fireworks(3,2); }
+    if(w.idx>=fl.length){ w.results.push({cycle:w.cycle, date:today(), n:fl.length, ok:w.ok||0, secs:w.secs||0, times:Object.values(w.times[w.cycle]||{})}); w.cycle++; w.idx=0; w.ok=0; w.secs=0; w.cycleStart=today(); saveProg(); toast('Cycle '+(w.cycle-1)+' complete! Cycle '+w.cycle+': '+woodPlanDays(w.cycle)+' Tage'); }
+    queueKind='Cycle '+w.cycle+' · '+(w.idx+1)+'/'+fl.length+(goal?' · today '+(doneNew+1)+'/'+goal+(doneNew>=goal?' ✓':''):''); return fl[w.idx]; }
+  const due=dueList(); if(due.length){ queueKind='Review'; return interleave(due.filter(p=>Math.floor(card(p.id).due/DAY)===Math.floor(due[0]&&card(due[0].id).due/DAY)).slice(0,8)); }
+  if(newToday()<settings.newPerDay){ const nl=newList(); if(nl.length){ queueKind='New'; return interleave(nl.slice(0,8)); } }
+  return null;
+}
+// ---------- Studium: Lernen (vorspielen mit Kommentar) → Abrufen (selbst spielen) ----------
+let study={phase:null};
+prog.study = prog.study || {idx:0};
+function isOpening(p){ return (p.set||'').startsWith('Eröffnung')||!!(p.notes&&p.notes.length); }
+function studyLines(){ return filtered().filter(p=>(p.set||'').startsWith('Eröffnung')||(p.notes&&p.notes.length)); }
+function noteFor(p,i){ return (p.notes&&p.notes[i])||''; }
+function sanAt(p,i){ let q=parseFEN(p.fen); for(let k=0;k<i;k++) q=applyMove(q,p.moves[k]); return sanish(q,p.moves[i]); }
+function moveLabel(p,i){ const q0=parseFEN(p.fen); const white=(q0.turn==='w')===(i%2===0); const start=+(p.fen.split(' ')[5]||1); const plyAbs=(start-1)*2+(q0.turn==='w'?0:1)+i; const no=Math.floor(plyAbs/2)+1; return (white?no+'.':no+'…')+sanAt(p,i).replace(/[KQRBN]/g,c=>({K:'K',Q:'D',R:'T',B:'L',N:'S'}[c])); }
+function studyStart(p){ study={phase:'learn',p}; locked=true; $('studyPanel').classList.remove('hidden'); $('stTitle').textContent=p.name||p.id; $('stPhase').textContent='Lernen – Züge mit ▶ durchgehen';
+  const s=p.summary||{}; $('stSum').innerHTML=(s.white?'<b>Weiß:</b> '+s.white+'<br>':'')+(s.black?'<b>Schwarz:</b> '+s.black+'<br>':'')+(s.trap?'<b>Falle/Typisch:</b> '+s.trap:'');
+  $('stNote').textContent=p.game?('Meisterpartie: '+p.game.white+' – '+p.game.black+' ('+p.game.event+', '+(p.game.date||'').slice(0,4)+'). Tippe ▶, um Zug für Zug mit Erklärung durchzugehen – oder gleich „Zug erraten“: Du spielst Weiß und suchst jeden Meisterzug selbst.'):(p.notes?'Ausgangsstellung – die Linie beginnt mit dem Zug des Gegners. Tippe ▶, um Zug für Zug mit Erklärung durchzugehen.':'Diese Linie ist noch nicht kommentiert – Züge lassen sich trotzdem durchgehen und abrufen.'); $('stStep').disabled=false; studyFillSelect(); if(!$('stTreeBox').classList.contains('hidden')) studyRenderTree(); $('stRecall').textContent=p.game?'Zug erraten':'Selbst spielen'; setMsg('Studium', p.game?'Partie lesen oder Züge erraten':'Linie lesen, dann selbst spielen'); }
+async function studyStep(){ if(study.phase!=='learn'||ply>=line.length) return; if(rp.viewing){ rpGo(rp.max); } const i=ply; if(!(await playLine())) return; $('stNote').innerHTML='<b>'+moveLabel(cur,i)+'</b> – '+(noteFor(cur,i)||'<i>noch kein Kommentar</i>'); rpSync(); if(!$('stTreeBox').classList.contains('hidden')) studyRenderTree(); if(ply>=line.length){ $('stStep').disabled=true; $('stPhase').textContent='Linie komplett – jetzt selbst spielen'; } }
+function studyRecall(){ if(!cur) return; const p=cur; study={phase:'recall',p}; const k=queueKind; load(p); queueKind=k; $('studyPanel').classList.remove('hidden'); study.miss=new Set(); $('stPhase').textContent=p.game?'Zug erraten – finde den Zug von '+p.game.white:'Abrufen – spiele die weißen Züge'; $('stNote').textContent=p.game?'Überlege bei jedem Zug, was der Meister spielen würde. Ein falscher Zug zählt als Fehlversuch – du darfst neu versuchen. Nach jedem richtigen Zug erscheint die Erklärung.':'Finde die Züge der Linie. Nach jedem richtigen Zug erscheint die Erklärung.'; $('stStep').disabled=true; }
+function studyNote(i){ if($('mode').value!=='study'||study.phase!=='recall'||!cur) return; $('stNote').innerHTML='<b>'+moveLabel(cur,i)+'</b> – '+noteFor(cur,i); }
+function studyFillSelect(){ const sets=[...new Set(puzzles.filter(p=>(p.set||'').startsWith('Eröffnung')||p.notes).map(p=>p.set||'Starter set'))].sort(); const cs=settings.filter.set||''; $('stSet').innerHTML='<option value="">Repertoire: alle Sets</option>'+sets.map(s=>`<option value="${s}" ${cs===s?'selected':''}>${s}</option>`).join('');
+  const sl=studyLines(); const i=(prog.study.idx||0)%Math.max(1,sl.length); $('stLines').innerHTML=sl.map((p,k)=>`<option value="${k}" ${k===i?'selected':''}>${k+1}. ${p.name||p.id}${p.notes?'':' (ohne Kommentar)'}</option>`).join(''); }
+$('stSet').onchange=()=>{ settings.filter.set=$('stSet').value; saveSettings(); prog.study.idx=0; saveProg(); study={phase:null}; renderSets(); load(pick()); };
+$('stLines').onchange=()=>{ prog.study.idx=+$('stLines').value; saveProg(); study={phase:null}; load(pick()); };
+$('stTree').onclick=()=>{ const box=$('stTreeBox'); box.classList.toggle('hidden'); if(!box.classList.contains('hidden')) studyRenderTree(); };
+function studyRenderTree(){ const sl=studyLines(); if(!cur||!sl.length){ $('stTreeBox').innerHTML=''; return; }
+  const root={ch:{},lines:[]}; sl.forEach((p,li)=>{ if(p.fen!==cur.fen) return; let n=root; n.lines.push(li); p.moves.forEach((u,i)=>{ n=n.ch[u]=n.ch[u]||{ch:{},lines:[],u,i}; n.lines.push(li); }); });
+  const curIdx=sl.indexOf(cur); let html='';
+  const walk=(n,depth,prefixDone)=>{ const keys=Object.keys(n.ch); keys.forEach((u,k)=>{ const c=n.ch[u]; const onPath=c.lines.includes(curIdx); const li=onPath?curIdx:c.lines[0]; const label=moveLabel(sl[li],c.i); const branch=keys.length>1;
+      const hasNote=!!(sl[li].notes&&sl[li].notes[c.i]); const sub=Object.keys(c.ch).length;
+      if(branch||k===0&&!prefixDone){ html+=`<div class="tn" style="padding-left:${depth*14}px">`; }
+      html+=`<span class="mv ${onPath&&c.i<ply?'cur':''}" data-li="${li}" data-ply="${c.i}" title="${hasNote?'kommentiert':''}">${label}${hasNote?'':'°'}</span>`;
+      if(branch) html+=`<span class="br">(${c.lines.length} Linie${c.lines.length>1?'n':''})</span>`;
+      if(sub===1){ walk(c,depth,true); if(branch||k===0&&!prefixDone) html+='</div>'; }
+      else { if(branch||k===0&&!prefixDone) html+='</div>'; walk(c,depth+(branch?1:0),false); } }); };
+  walk(root,0,false); $('stTreeBox').innerHTML=html||'<div>keine Linien ab dieser Stellung</div>';
+  document.querySelectorAll('#stTreeBox .mv').forEach(el=>el.onclick=()=>studyJump(+el.dataset.li,+el.dataset.ply)); }
+function studyJump(li,toPly){ const sl=studyLines(); const p=sl[li]; if(!p) return; prog.study.idx=li; saveProg(); study={phase:null}; queueKind='Studium · Linie '+(li+1)+'/'+sl.length; load(p);
+  for(let k=0;k<=toPly;k++){ const u=line[ply]; lastMove=[sqIdx(u.slice(0,2)),sqIdx(u.slice(2,4))]; pos=applyMove(pos,u); ply++; } render(); rpSync();
+  $('stNote').innerHTML='<b>'+moveLabel(cur,toPly)+'</b> – '+(noteFor(cur,toPly)||'<i>noch kein Kommentar</i>'); if(ply>=line.length){ $('stStep').disabled=true; $('stPhase').textContent='Linie komplett – jetzt selbst spielen'; } studyFillSelect(); if(!$('stTreeBox').classList.contains('hidden')) studyRenderTree(); }
+$('stStep').onclick=studyStep; $('stRecall').onclick=studyRecall; $('stNextLine').onclick=()=>{ prog.study.idx=(prog.study.idx||0)+1; saveProg(); load(pick()); };
+// ---------- Fortsetzen genau an der Stelle, an der aufgehört wurde ----------
+// Cycles-Tagesblöcke: pro Tag ein Block neuer Puzzles plus die langsamsten des Vortags
+function woodNewDay(fl){ const w=prog.wood; w.times=w.times||{}; if(w.dayDate===today()) return; const prev=w.dayDate; w.dayDate=today(); w.dayDone=0; w.goalToast=null;
+  const ids=new Set(fl.map(p=>p.id)); const prevTimes=(w.dayTimes&&prev)?w.dayTimes:{}; const n=settings.woodSlow??10;
+  w.slowQueue=Object.entries(prevTimes).filter(([id])=>ids.has(id)).sort((a,b)=>b[1]-a[1]).slice(0,n).map(([id])=>id); w.slowTotal=w.slowQueue.length; w.dayTimes={}; saveProg(); }
+// Adaptives Tagesziel: verbleibende Puzzles ÷ verbleibende Tage des Zyklus (Plan C1..C6), mindestens das eingestellte Minimum
+function woodPlanDays(cycle){ const plan=String(settings.woodPlan||'28,14,7,4,2,1').split(',').map(x=>+x.trim()).filter(x=>x>0); return plan[Math.min(cycle-1,plan.length-1)]||plan[plan.length-1]||28; }
+function dayDiff(a,b){ return Math.round((new Date(b)-new Date(a))/DAY); }
+function woodCycleInfo(fl){ const w=prog.wood; if(!w.cycleStart) w.cycleStart=today(); const days=woodPlanDays(w.cycle); const dayNo=dayDiff(w.cycleStart,today())+1; const daysLeft=Math.max(1,days-dayNo+1); const remaining=Math.max(0,fl.length-(w.idx||0));
+  const endDate=new Date(new Date(w.cycleStart).getTime()+(days-1)*DAY).toISOString().slice(0,10);
+  const ev=(prog.events||[]).filter(e=>e.mode==='wood'&&e.cycle===w.cycle); const activeDays=new Set(ev.map(e=>e.d)).size; const perDay=activeDays?ev.length/activeDays:0;
+  const forecast=perDay&&remaining?new Date(now()+Math.ceil(remaining/perDay)*DAY).toISOString().slice(0,10):(remaining?null:today());
+  return {days, dayNo, daysLeft, remaining, endDate, perDay:Math.round(perDay), forecast, goal:Math.max(settings.woodDaily||0, Math.ceil(remaining/daysLeft))}; }
+function woodGoal(fl){ return woodCycleInfo(fl).goal; }
+function woodDone(id, secs, good){ const w=prog.wood; w.times=w.times||{}; w.times[w.cycle]=w.times[w.cycle]||{}; w.dayTimes=w.dayTimes||{};
+  const t=secs==null?999:Math.round(secs)+(good?0:30);                     // Fehler zählen wie +30 s
+  if(w.slowQueue&&w.slowQueue[0]===id){ w.slowQueue.shift(); } else { w.idx++; }
+  w.times[w.cycle][id]=t; w.dayTimes[id]=t; w.dayDone=(w.dayDone||0)+1; }
+// Interleaving: nicht zweimal dasselbe Motiv hintereinander, Farben abwechseln
+function sideOf(p){ const t=p.fen.split(' ')[1]; return p.premove?(t==='w'?'b':'w'):t; }
+function interleave(cands){ if(!cands.length) return null; const score=p=>((p.theme||'')!==lastTheme?2:0)+(sideOf(p)!==lastSide?1:0); return cands.reduce((b,p)=>score(p)>score(b)?p:b, cands[0]); }
+// ---------- Ereignis-Log (jedes gelöste/aufgegebene Puzzle) ----------
+prog.events = prog.events || [];
+function logEvent(o){ if(!cur) return; const m=$('mode').value; prog.events.push({t:now(),d:today(),id:cur.id,mode:m,theme:cur.theme||'',rating:cur.rating||0,set:cur.set||'Starter set',ok:o.ok,hint:o.hint,secs:Math.round(o.secs*10)/10,err:o.err||'',reveal:o.reveal,cycle:m==='wood'?prog.wood.cycle:null,run:m==='arcade'?arcadeRun.start:null,cal:calib||''}); if(m==='arts'){ const e=prog.events[prog.events.length-1]; const net=artsNet(cur,o.secs); e.mv=artsMoves(cur); e.net=Math.round(net*10)/10; e.rho=Math.round(100*net/artsTarget(cur))/100; } levelUpdate(o); if(prog.events.length>30000) prog.events.splice(0,prog.events.length-30000); saveProg(); }
+function statsOf(ev){ const n=ev.length, ok=ev.filter(e=>e.ok&&!e.hint).length, times=ev.filter(e=>!e.reveal).map(e=>e.secs); const th={}; for(const e of ev){ th[e.theme]=th[e.theme]||{n:0,ok:0,t:[]}; th[e.theme].n++; if(e.ok&&!e.hint) th[e.theme].ok++; if(!e.reveal) th[e.theme].t.push(e.secs); }
+  const errs={first:0,calc:0,hint:0,slow:0}; for(const e of ev) if(e.err) errs[e.err]=(errs[e.err]||0)+1;
+  return {n, ok, acc:n?Math.round(100*ok/n):0, med:pct(times,.5), p90:pct(times,.9), fast:times.length?Math.round(100*times.filter(t=>t<=10).length/times.length):0, errs, themes:Object.fromEntries(Object.entries(th).map(([k,v])=>[k,{n:v.n,acc:Math.round(100*v.ok/v.n),med:pct(v.t,.5)}]))}; }
+function csvExport(){ const rows=[['time','date','puzzle','mode','set','theme','rating','correct','hint','seconds','error_type','gave_up','cycle','run','calibration']]; for(const e of prog.events) rows.push([new Date(e.t).toISOString(),e.d,e.id,e.mode,e.set,e.theme,e.rating,e.ok?1:0,e.hint?1:0,e.secs,e.err,e.reveal?1:0,e.cycle??'',e.run??'',e.cal]);
+  const csv=rows.map(r=>r.map(v=>/[",;\n]/.test(String(v))?'"'+String(v).replace(/"/g,'""')+'"':v).join(';')).join('\n'); const name='fade-chess-log-'+today()+'.csv';
+  (async()=>{ try{ const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;
+    if(dl){ try{ await dl.save({filename:name,data:'\ufeff'+csv}); toast('CSV saved'); }catch(e){ if(e&&e.code==='declined') toast('Cancelled'); else { $('progBox').value=csv; toast('Download not possible here – the CSV is in the text box in Settings'); } } }
+    else { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'})); a.download=name; a.click(); } }catch(e){ $('progBox').value=csv; toast('The CSV is in the text box in Settings'); } })(); }
+function bar(v,max,color){ return `<i style="display:inline-block;height:8px;width:${Math.max(2,Math.round(60*v/Math.max(1,max)))}px;background:${color||'var(--acc)'};border-radius:3px;vertical-align:middle;margin-right:6px"></i>`; }
+function pct(arr,p){ if(!arr.length) return 0; const a=[...arr].sort((x,y)=>x-y); return a[Math.min(a.length-1,Math.floor(p*a.length))]; }
+function saveResume(){ if(!cur||solved){ prog.resume=null; } else { prog.resume={mode:$('mode').value,id:cur.id,ply,elapsed:now()-startT,usedHint,hadError,errAtPly,calib,queueKind}; }
+  if($('mode').value==='arcade') prog.arcade.run={score:arcadeRun.score,solved:arcadeRun.solved,best:arcadeRun.best,seen:[...arcadeRun.seen],start:arcadeRun.start,streak};
+  saveProg(); }
+function loadResume(p,r){
+  waitT=0; wrongTried=[]; $('askBox').classList.add('hidden'); $('btnAsk').disabled=true; cur=p; $('replay').classList.add('hidden'); pos=parseFEN(p.fen); line=p.moves.slice(); ply=0; usedHint=!!r.usedHint; hadError=!!r.hadError; errAtPly=r.errAtPly??null; calib=r.calib||null; solved=false; firstUserPly=p.premove?1:0; lastTheme=p.theme||''; showCalib(); sel=null; lastMove=null; hintSq=null; marks={}; queueKind=(r.queueKind||'Resumed').replace(/ · stack \d+\/\d+( · round \d+)?/,'');
+  $('gradeRow').classList.add('hidden'); $('msg').className='msg';
+  const premove=!!p.premove; orient = premove ? (pos.turn==='w'?'b':'w') : pos.turn; const mySide=orient;
+  const upto=Math.min(r.ply||0, line.length);
+  for(let k=0;k<upto;k++){ const u=line[k]; lastMove=[sqIdx(u.slice(0,2)),sqIdx(u.slice(2,4))]; pos=applyMove(pos,u); ply++; }
+  if(ply<line.length && pos.turn!==mySide){ const u=line[ply]; lastMove=[sqIdx(u.slice(0,2)),sqIdx(u.slice(2,4))]; pos=applyMove(pos,u); ply++; } // Gegnerantwort war noch offen
+  ++loadTok; render();
+  if(ply>=line.length){ load(pick()); return; }
+  locked=false; startT=now()-(r.elapsed||0); announce(); rpSync();
+  const c=prog.cards[p.id]; syncMissBtn();
+  $('meta').innerHTML=`<span>${queueKind} · resumed</span><span>${p.url?`<a href="${p.url}" style="color:var(--muted)">${p.id}</a> · `:''}${p.name?p.name+' · ':''}${p.theme||''} · ${p.rating||'?'}${c&&c.seen?` · interval ${c.iv} d · seen ${c.seen}×`:' · new'}</span>`;
+  updateStats(); saveResume();
+}
+function resumeOrPick(){
+  if($('mode').value==='arcade' && prog.arcade.run){ const a=prog.arcade.run; arcadeRun={score:a.score||0,solved:a.solved||0,best:a.best||0,seen:new Set(a.seen||[]),start:a.start||Date.now()}; streak=a.streak||0; renderHud(); }
+  const r=prog.resume; if(r && r.mode===$('mode').value && r.mode!=='study'){ const p=puzzles.find(x=>x.id===r.id); if(p){ loadResume(p,r); return; } }
+  load(pick());
+}
+function load(p){
+  ++loadTok; waitT=0; wrongTried=[]; $('askBox').classList.add('hidden'); $('btnAsk').disabled=true; cur=p; $('replay').classList.add('hidden'); if(!p){ setMsg($('mode').value==='wow'?'No Mind-Blowing puzzles yet':$('mode').value==='arts'?(artsList().length?'Everything automated 🎉':'No tactics puzzles in the filter'):$('mode').value==='sprenger'?'No Brain Breakers yet':$('mode').value==='misses'?(missList().length?'Blunder Pile done for today ✓':'Blunder Pile empty 🎉'):$('mode').value==='arcade'?((settings.arcadeOrder||'random')==='seq'?'Sequential set complete 🎉':'No tactics puzzles in the filter'):$('mode').value==='wood'?'Daily block done':$('mode').value==='study'?'Keine kommentierten Linien im Filter':'Nothing due 🎉', $('mode').value==='wow'?'Mark a puzzle that delights you with 🤯 + in any mode.':$('mode').value==='sprenger'?'Mark a hard puzzle with 💣 + in any mode.':$('mode').value==='misses'?(missList().length?'All open puzzles already solved cleanly today – they return tomorrow.':'All mistakes ironed out – switch to another mode.'):$('mode').value==='arcade'?((settings.arcadeOrder||'random')==='seq'?'Reset the position with ↺ or change the filter.':'Set the filter to "all" in the Puzzles tab.'):$('mode').value==='wood'?'More tomorrow – or raise the daily goal in Settings (0 = unlimited).':'Raise "New puzzles per day", switch mode or import puzzles.'); pos=parseFEN('8/8/8/8/8/8/8/8 w - - 0 1'); locked=true; sel=null; lastMove=null; hintSq=null; marks={}; render(); $('gradeRow').classList.add('hidden'); updateStats(); return; }
+  pos=parseFEN(p.fen); line=p.moves.slice(); ply=0; usedHint=false; hadError=false; solved=false; sel=null; lastMove=null; hintSq=null; marks={}; errAtPly=null; calib=null;
+  $('gradeRow').classList.add('hidden'); $('msg').className='msg';
+  const premove = !!p.premove; firstUserPly=premove?1:0; lastTheme=p.theme||''; lastSide=premove?(pos.turn==='w'?'b':'w'):pos.turn; showCalib();
+  orient = premove ? (pos.turn==='w'?'b':'w') : pos.turn;
+  render();
+  const tok=loadTok;
+  if($('mode').value==='study' && study.phase!=='recall'){ studyStart(p); rpSync(); }
+  else if(premove){ locked=true; setMsg('Opponent moves …'); setTimeout(async()=>{ if(tok!==loadTok) return; if(!(await playLine())) return; locked=false; startT=now(); announce(); rpSync(); saveResume(); if($('mode').value==='study') studyNote(0); }, 500); }
+  else { locked=false; startT=now(); announce(); rpSync(); saveResume(); }
+  if($('mode').value!=='study') $('studyPanel').classList.add('hidden');
+  const c=prog.cards[p.id]; syncMissBtn();
+  $('meta').innerHTML=`<span>${queueKind}</span><span>${p.url?`<a href="${p.url}" style="color:var(--muted)">${p.id}</a> · `:''}${p.name?p.name+' · ':''}${p.theme||''} · ${p.rating||'?'}${c&&c.seen?` · interval ${c.iv} d · seen ${c.seen}×`:' · new'}</span>`;
+  updateStats();
+}
+function announce(){ const w=pos.turn==='w'; $('turnbox').className='turnbox '+(w?'w':'b'); setMsg(w?'White to move':'Black to move', 'Find the best move'+(line.length-ply>1?' – '+Math.ceil((line.length-ply)/2)+' moves':'')); }
+async function playLine(){ const tok=loadTok; const u=line[ply]; if(!u) return false; const from=sqIdx(u.slice(0,2)), to=sqIdx(u.slice(2,4)); const piece=pos.b[from]; await animateMove(from,to,piece); if(tok!==loadTok) return false; pos=applyMove(pos,u); lastMove=[from,to]; ply++; render(); sndMove(); return true; }
+
+function onSquare(i){
+  if(locked||!cur) return;
+  const p=pos.b[i];
+  const mine = p && (isWhite(p)===(pos.turn==='w'));
+  if(sel===null){ if(mine){ sel=i; render(); } return; }
+  if(i===sel){ sel=null; render(); return; }
+  if(mine){ sel=i; render(); return; }
+  const from=sel, to=i; const piece=pos.b[from];
+  const tg=legalTargets(pos,from); if(!tg.includes(to)){ sel=null; render(); return; }
+  const promoRank = isWhite(piece)?0:7;
+  if(piece.toLowerCase()==='p' && Math.floor(to/8)===promoRank){ askPromo(q=>tryMove(idxSq(from)+idxSq(to)+q)); return; }
+  tryMove(idxSq(from)+idxSq(to));
+}
+function askPromo(cb){
+  const w=pos.turn==='w'; const el=$('promo'); el.innerHTML=''; el.classList.remove('hidden');
+  for(const q of 'qrbn'){ const b=document.createElement('button'); b.innerHTML=pieceSVG(w?q.toUpperCase():q); b.onclick=()=>{ el.classList.add('hidden'); cb(q); }; el.appendChild(b); }
+}
+async function tryMove(uci){
+  sel=null; const expect=line[ply]; const tok=loadTok;
+  const from=sqIdx(uci.slice(0,2)), to=sqIdx(uci.slice(2,4));
+  if(uci===expect || (uci+'q')===expect){
+    hideCalib(); locked=true; const u=expect; const piece=pos.b[from]; render(); await animateMove(from,to,piece); if(tok!==loadTok) return;
+    pos=applyMove(pos,u); lastMove=[from,to]; ply++; hintSq=null; marks={[to]:'good'}; render(); studyNote(ply-1);
+    if(ply>=line.length){ finish(); return; }
+    sndGood(); setMsg('Correct', 'Opponent replies …'); $('msg').className='msg ok';
+    rpSync(); saveResume(); const w0=now();
+    setTimeout(async()=>{ if(tok!==loadTok) return; marks={}; if(!(await playLine())) return; waitT+=now()-w0; locked=false; announce(); $('msg').className='msg'; rpSync(); saveResume(); studyNote(ply-1); }, 300);
+  } else {
+    hadError=true; if(errAtPly===null) errAtPly=ply; if(study.phase==='recall'&&study.miss) study.miss.add(ply); hideCalib(); saveResume(); marks={[to]:'bad'}; render(); boardEl.classList.add('shake'); setTimeout(()=>boardEl.classList.remove('shake'),400);
+    sndBad(); buzz(80); streak=0;
+    { const w=lanMove(pos,uci); if(!wrongTried.includes(w)) wrongTried.push(w); }
+    setMsg('Wrong', sanish(pos,uci)+' is not the best move – try again.'); $('msg').className='msg err';
+    setTimeout(()=>{ if(tok!==loadTok) return; marks={}; render(); $('msg').className='msg'; }, 700);
+  }
+}
+// ---------- Zug-Replay (während des Lösens bis zum letzten korrekten Teilschritt, danach komplett) ----------
+let rp={pos:[],san:[],idx:0,max:0,touched:false,viewing:false,lockedBefore:false};
+function rpBuild(upto){ const ps=[parseFEN(cur.fen)], sans=[]; let q=ps[0]; for(let k=0;k<upto;k++){ const u=cur.moves[k]; sans.push(sanish(q,u)); q=applyMove(q,u); ps.push(q); } rp.pos=ps; rp.san=sans; rp.max=upto; rp.idx=upto; rp.viewing=false; $('replay').classList.toggle('hidden', upto===0); rpRender(); }
+function showReplay(){ if(!cur) return; rp.touched=false; rpBuild(cur.moves.length); }
+function rpSync(){ if(!cur||solved) return; rpBuild(ply); }
+function rpRender(){ const u=rp.idx>0?cur.moves[rp.idx-1]:null;
+  if(rp.viewing){ pos=rp.pos[rp.idx]; lastMove=u?[sqIdx(u.slice(0,2)),sqIdx(u.slice(2,4))]:null; sel=null; marks={}; render(); }
+  $('rpInfo').textContent=(rp.idx===0?'Starting position':'Move '+rp.idx+'/'+rp.max+' · '+rp.san[rp.idx-1])+((solved||($('mode').value==='study'&&study.phase==='learn'))?'':' (so far)');
+  $('rpBack').disabled=$('rpStart').disabled=rp.idx===0; $('rpFwd').disabled=$('rpEnd').disabled=rp.idx===rp.max; }
+function rpGo(i){ if(!cur||!rp.pos.length||$('replay').classList.contains('hidden')) return; const learn=$('mode').value==='study'&&study.phase==='learn'; if(locked && !rp.viewing && !solved && !learn) return; // nicht während der Gegner zieht
+  rp.touched=true; rp.idx=Math.max(0,Math.min(rp.max,i));
+  if(rp.idx<rp.max){ if(!rp.viewing){ rp.viewing=true; rp.lockedBefore=locked; } locked=true; rpRender(); }
+  else { const wasViewing=rp.viewing; rp.viewing=false; if(wasViewing){ pos=rp.pos[rp.max]; const u=cur.moves[rp.max-1]; lastMove=u?[sqIdx(u.slice(0,2)),sqIdx(u.slice(2,4))]:null; sel=null; marks={}; render(); locked=(solved||learn)?true:rp.lockedBefore; } rpRender(); }
+  if(learn){ $('stNote').innerHTML=rp.idx===0?'Ausgangsstellung':'<b>'+moveLabel(cur,rp.idx-1)+'</b> – '+(noteFor(cur,rp.idx-1)||'<i>noch kein Kommentar</i>'); }
+  sndMove(); }
+$('rpBack').onclick=()=>rpGo(rp.idx-1); $('rpFwd').onclick=()=>rpGo(rp.idx+1); $('rpStart').onclick=()=>rpGo(0); $('rpEnd').onclick=()=>rpGo(rp.max);
+function finish(){
+  $('btnAsk').disabled=false;
+  solved=true; locked=true; prog.resume=null; const secs=(now()-startT)/1000; session.n++;
+  const mode=$('mode').value;
+  const good = !hadError && !usedHint;
+  if(good){ session.ok++; streak++; } else streak=0;
+  setMsg(good?'Solved ✓':'Solved (with '+(hadError?'a mistake':'a hint')+')', Math.round(secs)+' s'); $('msg').className='msg ok';
+  { const d=today(); prog.days[d]=prog.days[d]||{n:0,ok:0,new:0}; if(mode==='arcade'||mode==='misses'||mode==='arts'){ prog.days[d].n++; if(good) prog.days[d].ok++; saveProg(); } }
+  logEvent({ok:!hadError, hint:usedHint, secs, err:hadError?(errAtPly===firstUserPly?'first':'calc'):usedHint?'hint':secs>3*settings.fastSec?'slow':'', reveal:false});
+  boardEl.classList.add('pulse'); setTimeout(()=>boardEl.classList.remove('pulse'),500);
+  const panel=document.querySelector('#tab-train .panel'); panel.classList.add('glow'); setTimeout(()=>panel.classList.remove('glow'),900);
+  if(good){ fireworks(secs<=settings.fastSec?4:3, streak); sndWin(streak); buzz(streak>=5?[40,50,40,50,80]:[30,40,30]);
+    const label = streak>=10?streak+'× UNSTOPPABLE 🌟': streak>=7?streak+'× in a row 🔥🔥': streak>=5?streak+'× in a row 🔥': streak>=2?streak+'× in a row': secs<=settings.fastSec?'Lightning! ⚡':'Solved!';
+    showCombo(label, streak); }
+  else { fireworks(1); sndGood(); }
+  if(mode==='arcade' && cur){ arcRetryTick(); if(hadError) arcRetryAdd(cur.id); }
+  if(cur){ if(hadError) addMiss(cur.id); else if(!usedHint){ const mm=missOk(cur.id); if(mm) toast(mm.done?'🧺 Out of the Blunder Pile ('+MISS_NEED+'/'+MISS_NEED+' on different days)':'🧺 Blunder Pile: '+mm.ok+'/'+MISS_NEED+' solved cleanly – back from tomorrow'); } syncMissBtn(); }
+  if(mode==='arcade' && cur){ arcadeRun.seen.add(cur.id); if((settings.arcadeOrder||'random')==='seq') seqAdvance();
+    let pts=0; if(!hadError){ const base=usedHint?50:100; const bonus=usedHint?0:(secs<=settings.fastSec?50:secs<=2*settings.fastSec?20:0); pts=Math.round((base+bonus)*arcadeMult()); }
+    arcadeRun.score+=pts; arcadeRun.solved++; arcadeRun.best=Math.max(arcadeRun.best,streak);
+    if(pts) showPts('+'+pts); if(arcadeRun.score>arcadeBest() && arcadeBest()>0 && arcadeRun.score-pts<=arcadeBest()) toast('🏆 New record!');
+    $('sub').textContent=Math.round(secs)+' s · '+(pts?'+'+pts+' points (×'+arcadeMult().toFixed(1)+')':'0 points – goes to the Blunder Pile'); renderHud(); }
+  if(mode==='arts' && cur){ artsFeedback(secs); { const inMini=!!mini; mgRecord(!hadError&&!usedHint, artsNet(cur,secs)); if(!inMini) mgStreak(!hadError); } renderHud(); }
+  if(mode==='misses' && cur){ $('sub').textContent=Math.round(secs)+' s · '+(hadError?'stays in the Blunder Pile':usedHint?'with a hint – stays in the Blunder Pile':'out of the Blunder Pile ✓'); renderHud(); }
+  if(mode==='wood'){ const w=prog.wood; woodDone(cur.id, secs, good); w.ok=(w.ok||0)+(good?1:0); w.secs=(w.secs||0)+secs; saveProg(); renderHud(); }
+  let manual=false;
+  if(mode!=='random' && mode!=='wood' && mode!=='arcade' && mode!=='misses' && mode!=='master' && mode!=='arts' && mode!=='wow'){
+    if(cur && (!prog.cards[cur.id]||prog.cards[cur.id].seen===0)){ const d=today(); prog.days[d]=prog.days[d]||{n:0,ok:0,new:0}; prog.days[d].new++; }
+    if(settings.autoGrade==='manual'){ manual=true; $('gradeRow').classList.remove('hidden'); setMsg('How hard was that?', Math.round(secs)+' s'); }
+    else { const {g,err}=autoGrade(secs);
+      review(cur.id, g, secs, {err, cal:calib}); $('sub').textContent=Math.round(secs)+' s · '+GRADE_LABEL[g]+(err?' ('+ERR_LABEL[err]+')':'')+' → again in '+(g<2?'10 min':card(cur.id).iv+' d'); }
+  } else if(mode==='wood'){ const {g,err}=autoGrade(secs); review(cur.id, g, secs, {err, cal:calib}); }
+  updateStats(); showReplay();
+  if(mode==='study'){ $('stPhase').textContent=good?'Linie fehlerfrei abgerufen ✓':'Abgerufen – mit '+(hadError?'Fehler':'Tipp'); if(cur&&cur.game){ const tot=cur.moves.filter((_,k)=>k%2===0).length, miss=(study.miss?study.miss.size:0); $('stPhase').textContent='Partie nachgespielt: '+(tot-miss)+'/'+tot+' Züge auf Anhieb gefunden'+(miss?'':' ✓'); } $('stRecall').textContent='Nochmal selbst spielen'; study.phase='done'; }
+  if(!manual && mode!=='study' && (settings.autoNext??'1')==='1'){ const my=cur; const delay = (good ? 1600+Math.min(streak,10)*180 : 1200)+(mode==='arts'?1400:0); setTimeout(()=>{ if(cur===my && solved && !rp.touched){ $('msg').className='msg'; load(pick()); } }, delay); }
+}
+function giveUp(){
+  if(!cur||solved) return; hadError=true; locked=true;
+  const rest=line.slice(ply); let i=0; const tok=loadTok;
+  const step=async()=>{ if(tok!==loadTok) return; if(ply>=line.length){ setMsg('Solution: '+rest.map((u,k)=>k%2?'':sanish(parseFEN(cur.fen),u)).join(' ').trim(), 'Counted as "Forgot"'); finishAfterReveal(); return; } if(!(await playLine())) return; setTimeout(step,450); };
+  step();
+}
+function finishAfterReveal(){
+  $('btnAsk').disabled=false;
+  const mode=$('mode').value; session.n++; streak=0;
+  logEvent({ok:false, hint:false, secs:(now()-startT)/1000, err:'first', reveal:true});
+  if(cur){ addMiss(cur.id); if(mode==='arcade'){ arcRetryTick(); arcRetryAdd(cur.id); arcadeRun.seen.add(cur.id); arcadeRun.solved++; if((settings.arcadeOrder||'random')==='seq') seqAdvance(); renderHud(); } if(mode==='misses') renderHud(); if(mode==='arts'){ artsFeedback(0,true); { const inMini=!!mini; mgRecord(false, null); if(!inMini) mgStreak(false); } renderHud(); } }
+  showReplay();
+  if(mode==='sr'){ if(cur && (!prog.cards[cur.id]||prog.cards[cur.id].seen===0)){ const d=today(); prog.days[d]=prog.days[d]||{n:0,ok:0,new:0}; prog.days[d].new++; } review(cur.id,1,null,{err:errAtPly===null?'first':(errAtPly===firstUserPly?'first':'calc'),cal:calib}); }
+  if(mode==='wood'){ woodDone(cur.id,null,false); review(cur.id,1,null,{err:'first',cal:calib}); }
+  solved=true; prog.resume=null; saveProg(); updateStats();
+}
+$('btnHint').onclick=()=>{ if(rp.viewing) rpGo(rp.max); if(locked||!cur||solved) return; usedHint=true; saveResume(); hintSq=sqIdx(line[ply].slice(0,2)); render(); setMsg('Hint', 'The highlighted piece moves.'); };
+$('btnSolution').onclick=giveUp;
+$('btnMiss').onclick=()=>{ if(!cur) return; if(isMiss(cur.id)){ clearMiss(cur.id); $('btnMiss').textContent='🧺 +'; toast('Removed from the Blunder Pile'); } else { addMiss(cur.id); $('btnMiss').textContent='🧺 ✓'; toast('Added to the Blunder Pile'); } renderHud(); };
+function syncMissBtn(){ $('btnMiss').textContent = cur && isMiss(cur.id) ? '🧺 ✓' : '🧺 +'; $('btnSpr').textContent = cur && isSpr(cur.id) ? '💣 ✓' : '💣 +'; $('btnWow').textContent = cur && isWow(cur.id) ? '🤯 ✓' : '🤯 +'; }
+$('mgStart').onclick=()=>{ if(mini){ mgStop('Mini-game cancelled'); load(pick()); } };
+$('btnWow').onclick=()=>{ if(!cur) return; const on=toggleWow(cur.id); syncMissBtn(); toast(on?'🤯 Marked as Mind-Blowing':'Mind-Blowing mark removed'); renderHud(); };
+$('btnSpr').onclick=()=>{ if(!cur) return; const on=toggleSpr(cur.id); syncMissBtn(); toast(on?'💣 Added to the Brain Breakers':'Removed from the Brain Breakers'); renderHud(); };
+$('btnRetry').onclick=()=>{ if(!cur) return; const k=queueKind; load(cur); queueKind=k; };
+$('btnNext').onclick=()=>{ if($('mode').value==='study'){ if(study.phase==='learn'){ studyRecall(); return; } prog.study.idx=(prog.study.idx||0)+1; saveProg(); study={phase:null}; } load(pick()); };
+document.querySelectorAll('#gradeRow button').forEach(b=>b.onclick=()=>{ const g={1:1,3:2,4:3,5:4}[+b.dataset.q]; const {err}=autoGrade((now()-startT)/1000); review(cur.id,g,(now()-startT)/1000,{err,cal:calib}); $('gradeRow').classList.add('hidden'); if(g>=2) session.ok++; updateStats(); load(pick()); });
+$('mode').onchange=()=>{ settings.mode=$('mode').value; saveSettings(); study={phase:null}; modeNote(); renderHud(); resumeOrPick(); };
+$('aEnd').onclick=endArcadeRun;
+$('csvBtn').onclick=csvExport;
+// ---------- „KI fragen“: aktuelles Puzzle (Stellung, Lösung, eigener Versuch) als fertige Frage kopieren ----------
+function toFEN(p, half, full){ let s=''; for(let r=0;r<8;r++){ let e=0; for(let f=0;f<8;f++){ const c=p.b[r*8+f]; if(c){ if(e){ s+=e; e=0; } s+=c; } else e++; } if(e) s+=e; if(r<7) s+='/'; }
+  const at=q=>p.b[sqIdx(q)]; let c=''; for(const ch of (p.cast||'')){ if((ch==='K'&&at('e1')==='K'&&at('h1')==='R')||(ch==='Q'&&at('e1')==='K'&&at('a1')==='R')||(ch==='k'&&at('e8')==='k'&&at('h8')==='r')||(ch==='q'&&at('e8')==='k'&&at('a8')==='r')) c+=ch; }   // Rochaderechte nur, wenn König und Turm noch auf ihren Feldern stehen
+  return s+' '+p.turn+' '+(c||'-')+' '+(p.ep||'-')+' '+half+' '+full; }
+function lanMove(p, uci){ const from=sqIdx(uci.slice(0,2)), to=sqIdx(uci.slice(2,4)); const pc=p.b[from]||''; const t=pc.toUpperCase();
+  const n=applyMove(p,uci); const chk=attacked(n.b, kingSq(n.b, n.turn==='w'), n.turn!=='w')?'+':'';
+  if(t==='K'&&Math.abs(from-to)===2) return (to>from?'O-O':'O-O-O')+chk;
+  const cap=p.b[to] || (t==='P' && (from-to)%8!==0);
+  return (t==='P'?'':t)+uci.slice(0,2)+(cap?'x':'-')+uci.slice(2,4)+(uci[4]?'='+uci[4].toUpperCase():'')+chk; }
+function askText(){ const p=cur; if(!p) return ''; const f=p.fen.split(' '); let half=+f[4]||0, full=+f[5]||1; let q=parseFEN(p.fen); let pre='';
+  if(p.premove){ const u=p.moves[0]; pre=lanMove(q,u); const pc=(q.b[sqIdx(u.slice(0,2))]||'').toLowerCase(); half=(pc==='p'||q.b[sqIdx(u.slice(2,4))])?0:half+1; if(q.turn==='b') full++; q=applyMove(q,u); }
+  const start=toFEN(q,half,full); const side=q.turn==='w'?'White':'Black'; const rest=p.moves.slice(p.premove?1:0);
+  let s='', n=full, x=q; rest.forEach((u,i)=>{ const w=x.turn==='w'; if(w) s+=n+'. '; else if(i===0) s+=n+'... '; s+=lanMove(x,u)+' '; if(!w) n++; x=applyMove(x,u); });
+  const L=[];
+  L.push('Explain this chess tactics puzzle to me'+(p.url||/^[A-Za-z0-9]{5}$/.test(p.id)?' (Lichess puzzle '+p.id+')':'')+'.');
+  L.push(''); L.push('Position (FEN), '+side+' to move: '+start);
+  if(pre) L.push('The opponent\'s last move before it: '+pre);
+  L.push('Solution (long notation, I play '+side+'): '+s.trim());
+  L.push('Solution in UCI: '+rest.join(' '));
+  if(p.theme||p.rating) L.push('Lichess theme: '+(p.theme||'–')+' · Rating: '+(p.rating||'–'));
+  const mine=[]; if(wrongTried.length) mine.push('first played the wrong move: '+wrongTried.join(', ')); if(usedHint) mine.push('used a hint'); if(solved&&!hadError&&!usedHint) mine.push('solved without a mistake'); if(!solved&&!wrongTried.length&&!usedHint) mine.push('not solved yet');
+  if(mine.length) L.push('My attempt: '+mine.join('; '));
+  L.push(''); L.push('Please explain:');
+  L.push('1. the core idea and the tactical motif,');
+  L.push('2. move by move, what each move threatens and why exactly this order is needed,');
+  L.push('3. why the natural alternatives fail'+(wrongTried.length?' – especially the move I tried':'')+',');
+  L.push('4. how I can recognise this pattern in future positions.');
+  L.push('Check every line against the FEN and say so explicitly if you are unsure about a sequence.');
+  return L.join('\n'); }
+$('btnAsk').disabled=true;
+$('btnAsk').onclick=()=>{ if(!cur||!solved) return; const t=askText(); const b=$('askBox'); b.value=t;
+  const fail=()=>{ b.classList.remove('hidden'); b.focus(); b.select(); toast('Copying is not possible here – select the text in the box and copy it'); };
+  try{ navigator.clipboard.writeText(t).then(()=>toast('🤖 Copied – now paste it into an AI chat'), fail); }catch(e){ fail(); } };
+
+// ---------- Export für KI-Chats: kompakte, selbsterklärende Zusammenfassung (englisch, damit jedes Modell sie liest) ----------
+function aiExport(full){
+  const ev=(prog.events||[]).slice().sort((a,b)=>a.t-b.t); const byId=new Map(puzzles.map(p=>[p.id,p]));
+  const med=a=>a.length?Math.round(pct(a,.5)*10)/10:''; const pc=(a,b)=>b?Math.round(100*a/b)+'%':'';
+  const clean=e=>!!e.ok&&!e.reveal; const mvOf=e=>e.mv||(byId.get(e.id)?artsMoves(byId.get(e.id)):'');
+  const row=a=>a.join(' | '); const table=(head,rows)=>rows.length?[row(head),row(head.map(()=>'---')),...rows.map(row)].join('\n'):'(no data yet)';
+  const group=(key)=>{ const g=new Map(); for(const e of ev){ const k=key(e); if(k===''||k==null) continue; if(!g.has(k)) g.set(k,[]); g.get(k).push(e); } return g; };
+  const stat=(k,a)=>{ const ok=a.filter(clean); return [k, a.length, new Set(a.map(e=>e.id)).size, pc(ok.length,a.length), pc(a.filter(e=>e.hint).length,a.length), med(ok.map(e=>e.secs))]; };
+  const H=['attempts','distinct puzzles','solved without error','used hint','median seconds (correct)'];
+  const out=[]; const P=s=>out.push(s);
+  P('# Chess tactics training export');
+  P('Generated '+new Date().toISOString().slice(0,16).replace('T',' ')+' UTC by Fade Chess, a chess tactics trainer. Puzzles come from the Lichess puzzle database; ratings are Lichess puzzle ratings; themes are Lichess theme tags.');
+  P('\nPlease act as a chess coach and learning analyst. Use only the data below, say when the data is too thin for a conclusion, and answer in the language of my question.');
+  P('\n## How to read the data');
+  P(['- One "attempt" = one puzzle worked through once. "Solved without error" = every move right at the first try and the solution not revealed (a hint may have been used; see the hint column).',
+     '- Seconds = wall time for the whole puzzle. In the Adaptive mode two more values exist: net = think time (seconds minus the opponent\'s reply animations and about 0.8 s per own move for tapping), and rho = net ÷ target time, where target = '+settings.fastSec+' s for a one-move puzzle plus 50% per further move. rho ≤ 1 means "at target speed".',
+     '- Error types: first = first move wrong (pattern not seen); calc = a later move wrong (calculation error); hint = hint used; slow = correct but slow; empty = clean and fast.',
+     '- Modes: sr = spaced repetition (FSRS); wood = Cycles (a fixed set repeated in shrinking cycles); arcade = endless scored run; arts = Adaptive (order driven by errors and think time; a puzzle is "automated" after 3 clean solves at target speed on different days); misses = Blunder Pile (puzzles got wrong before); wow = puzzles marked Mind-Blowing; sprenger = puzzles marked as especially hard; random = unscored; master/study = opening and model-game material.',
+     '- "moves" = number of own moves in the solution.'].join('\n'));
+  const okAll=ev.filter(clean); const days=[...new Set(ev.map(e=>e.d))];
+  P('\n## Totals');
+  P(['- Puzzles available: '+puzzles.length+' (tactics: '+puzzles.filter(p=>!isOpening(p)&&!p.game).length+')',
+     '- Attempts logged: '+ev.length+' on '+days.length+' training days'+(ev.length?' ('+ev[0].d+' to '+ev[ev.length-1].d+')':''),
+     '- Distinct puzzles attempted: '+new Set(ev.map(e=>e.id)).size,
+     '- Solved without error: '+pc(okAll.length,ev.length)+' · hint used: '+pc(ev.filter(e=>e.hint).length,ev.length)+' · solution revealed: '+pc(ev.filter(e=>e.reveal).length,ev.length),
+     '- Median seconds per correct puzzle: '+med(okAll.map(e=>e.secs)),
+     '- Rating of attempted puzzles: median '+med(ev.map(e=>e.rating).filter(Boolean))+', range '+(ev.length?Math.min(...ev.map(e=>e.rating||9999))+'–'+Math.max(...ev.map(e=>e.rating||0)):'')].join('\n'));
+  if(LEVELS) P('- Current puzzle rating in this trainer: '+plRating()+' (after '+(prog.ratingN||0)+' rated first attempts; new puzzles are drawn about 200 points below it)');
+  P('\n## By mode'); P(table(['mode',...H],[...group(e=>e.mode)].map(([k,a])=>stat(k,a))));
+  P('\n## By day (most recent 30 training days)'); P(table(['date',...H],[...group(e=>e.d)].slice(-30).map(([k,a])=>stat(k,a))));
+  P('\n## By theme (sorted by attempts)'); P(table(['theme',...H],[...group(e=>e.theme)].sort((a,b)=>b[1].length-a[1].length).map(([k,a])=>stat(k,a))));
+  P('\n## By rating band'); P(table(['rating',...H],[...group(e=>e.rating?Math.floor(e.rating/100)*100:'')].sort((a,b)=>a[0]-b[0]).map(([k,a])=>stat(k+'–'+(k+99),a))));
+  P('\n## By solution length'); P(table(['own moves',...H],[...group(e=>mvOf(e))].sort((a,b)=>a[0]-b[0]).map(([k,a])=>stat(k,a))));
+  const et={}; for(const e of ev){ const k=e.reveal?'revealed':(e.err||'clean'); et[k]=(et[k]||0)+1; }
+  P('\n## Error types (all attempts)'); P(Object.entries(et).sort((a,b)=>b[1]-a[1]).map(([k,n])=>'- '+k+': '+n+' ('+pc(n,ev.length)+')').join('\n')||'(no data yet)');
+  // learning curve: same puzzle, first attempt vs latest attempt
+  const per=group(e=>e.id); const rep2=[...per.values()].filter(a=>a.length>=2);
+  P('\n## Repetition effect (puzzles attempted at least twice: '+rep2.length+')');
+  if(rep2.length){ const f=rep2.map(a=>a[0]), l=rep2.map(a=>a[a.length-1]);
+    P(table(['','solved without error','median seconds'],[['first attempt',pc(f.filter(clean).length,f.length),med(f.map(e=>e.secs))],['latest attempt',pc(l.filter(clean).length,l.length),med(l.map(e=>e.secs))]]));
+    const both=rep2.filter(a=>clean(a[0])&&clean(a[a.length-1])); if(both.length) P('Among puzzles correct both times ('+both.length+'): '+pc(both.filter(a=>a[a.length-1].secs<a[0].secs).length,both.length)+' were faster at the latest attempt.'); }
+  else P('(no data yet)');
+  // adaptive mode
+  const A=artsState(); const al=artsList(); let fresh=0,ret=0,live=0; const lastRes={wrong:0,'with hint':0,slow:0,'at target speed':0};
+  for(const p of al){ const s=A.st[p.id]; if(!s){ fresh++; continue; } if(s.ret) ret++; else live++; lastRes[!s.ok?'wrong':s.hint?'with hint':s.rho<=1?'at target speed':'slow']++; }
+  const ae=ev.filter(e=>e.mode==='arts');
+  P('\n## Adaptive mode');
+  P(['- Attempts: '+ae.length+' · unseen puzzles: '+fresh+' · in rotation: '+live+' · automated: '+ret+' · current streak of correct solves: '+(prog.artsRun||0)+' (a themed mini-game starts at '+MG_EVERY+')',
+     '- Last result of the puzzles seen: '+Object.entries(lastRes).map(([k,n])=>k+' '+n).join(', '),
+     '- Median think time (net) of correct solves: '+med(ae.filter(clean).map(e=>e.net).filter(v=>v!=null))+' s · median rho: '+med(ae.filter(clean).map(e=>e.rho).filter(v=>v!=null))+' · at target speed: '+pc(ae.filter(e=>clean(e)&&!e.hint&&e.rho<=1).length,ae.length)].join('\n'));
+  const info=id=>{ const p=byId.get(id)||{}; return [id,p.theme||'',p.rating||'']; };
+  const worst=[...per].map(([id,a])=>({id,n:a.length,f:a.filter(e=>!clean(e)).length,m:med(a.filter(clean).map(e=>e.secs))})).filter(x=>x.f>0).sort((a,b)=>b.f-a.f||b.n-a.n).slice(0,20);
+  P('\n## Most-failed puzzles (top 20)'); P(table(['puzzle id','theme','rating','attempts','failed','median seconds when correct'],worst.map(x=>[...info(x.id),x.n,x.f,x.m])));
+  const slow=[...per].map(([id,a])=>{ const c=a.filter(clean); return {id,n:c.length,m:med(c.map(e=>e.secs)),mv:mvOf(a[0])}; }).filter(x=>x.n>0).sort((a,b)=>b.m-a.m).slice(0,15);
+  P('\n## Slowest correctly solved puzzles (top 15)'); P(table(['puzzle id','theme','rating','own moves','correct solves','median seconds'],slow.map(x=>[...info(x.id),x.mv,x.n,x.m])));
+  const ms=Object.entries(prog.misses||{}).filter(([id,m])=>!m.done&&byId.has(id));
+  P('\n## Blunder Pile (open: '+ms.length+')'); P(table(['puzzle id','theme','rating','times failed','clean solves since','last failed'],ms.sort((a,b)=>(b[1].n||0)-(a[1].n||0)).slice(0,40).map(([id,m])=>[...info(id),m.n||0,m.ok||0,m.last||''])));
+  const marks=(o)=>Object.entries(o||{}).filter(([id,s])=>s&&s.on&&byId.has(id)).map(([id])=>info(id));
+  P('\n## Puzzles I marked'); P('Mind-Blowing:\n'+table(['puzzle id','theme','rating'],marks(prog.wow))+'\n\nEspecially hard:\n'+table(['puzzle id','theme','rating'],marks(prog.sprenger)));
+  if(prog.wood&&(prog.wood.results||[]).length) { P('\n## Cycles completed'); P(table(['cycle','finished','puzzles','correct','total minutes','median s','P90 s'],prog.wood.results.map(r=>[r.cycle,r.date,r.n??'',r.ok??'',Math.round((r.secs||0)/60),r.times&&r.times.length?pct(r.times,.5):'',r.times&&r.times.length?pct(r.times,.9):'']))); }
+  const log=full?ev:ev.slice(-150);
+  P('\n## Attempt log ('+(full?'all '+ev.length:'latest '+log.length+' of '+ev.length)+' attempts, oldest first)');
+  P('Columns: date time(UTC);puzzle id;mode;theme;rating;own moves;ok(1/0);hint(1/0);revealed(1/0);seconds;net;rho;error type');
+  P(log.map(e=>[new Date(e.t).toISOString().slice(0,16).replace('T',' '),e.id,e.mode,e.theme||'',e.rating||'',mvOf(e),e.ok?1:0,e.hint?1:0,e.reveal?1:0,e.secs,e.net??'',e.rho??'',e.err||''].join(';')).join('\n')||'(no data yet)');
+  P('\nA puzzle can be looked up at https://lichess.org/training/<puzzle id> (ids starting with "mp_" or "p" are not Lichess puzzles).');
+  P('\n## Questions I might ask');
+  P(['- Which tactical themes are my weakest, in accuracy and in speed?','- Am I getting faster on puzzles I repeat?','- Do my mistakes come more from not seeing the pattern or from calculation?','- Is the rating range right for me, and what should I change in my training plan for the next two weeks?'].join('\n'));
+  return out.join('\n')+'\n';
+}
+function aiShow(t,msg){ const b=$('aiBox'); b.value=t; b.classList.remove('hidden'); $('aiInfo').textContent=msg+' · '+Math.round(t.length/1000)+' kB of text'; }
+function aiCopy(full){ const t=aiExport(full); const fail=()=>{ aiShow(t,'Copying is not possible here – select the text in the box and copy it'); $('aiBox').focus(); $('aiBox').select(); };
+  try{ navigator.clipboard.writeText(t).then(()=>{ aiShow(t,'Copied to the clipboard – now paste it into an AI chat'); toast('Copied'); }, fail); }catch(e){ fail(); } }
+$('aiCopy').onclick=()=>aiCopy(false); $('aiCopyFull').onclick=()=>aiCopy(true);
+$('aiSave').onclick=()=>{ const t=aiExport(true); const name='fade-chess-ai-export-'+today()+'.md';
+  (async()=>{ try{ const dl=window.claude&&window.claude.use?await window.claude.use('downloads'):null;
+    if(dl){ try{ await dl.save({filename:name,data:t}); toast('File saved'); }catch(e){ if(e&&e.code==='declined') toast('Cancelled'); else aiShow(t,'Download not possible here – copy the text from the box'); } }
+    else { const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([t],{type:'text/markdown'})); a.download=name; a.click(); aiShow(t,'File saved'); } }catch(e){ aiShow(t,'Download not possible here – copy the text from the box'); } })(); };
+
+$('aOrder').onchange=()=>{ settings.arcadeOrder=$('aOrder').value; saveSettings(); renderHud(); load(pick()); };
+$('aReset').onclick=()=>{ if($('aReset').dataset.c){ prog.arcade.seq[seqKey()]=0; saveProg(); delete $('aReset').dataset.c; $('aReset').textContent='↺'; toast('Position reset to 1'); renderHud(); load(pick()); } else { $('aReset').dataset.c='1'; $('aReset').textContent='Sure?'; setTimeout(()=>{ delete $('aReset').dataset.c; $('aReset').textContent='↺'; },2500); } };
+function modeNote(){ const m=$('mode').value; $('modeNote').textContent = m==='wow'?'Puzzles you marked with 🤯 as Mind-Blowing – the most beautiful and surprising ones, to enjoy and revisit. Drawn without replacement, no scheduling; they stay until you remove the mark with 🤯 ✓.' : m==='arts'?'The order adapts to you: every puzzle has a priority that grows the longer it has been away. A mistake → it returns after a few puzzles; correct but slow → soon; correct and at target speed → only after a long break. What counts is think time: total time minus the opponent\'s replies and the time to enter moves. The target grows with the number of moves ('+settings.fastSec+' s for one move, +50% for each further move; the base is the time threshold in Settings). Three clean solves at target speed on different days = automated, and the puzzle leaves the stack. New puzzles fill the gaps. Marks: 🧺 Blunder Pile · 💣 Brain Breakers · 🤯 Mind-Blowing. Mini-game event: after '+MG_EVERY+' correct solves in a row you get up to 5 puzzles of one motif back to back (e.g. "Skewer Training"), preferably your weakest motif; afterwards the streak starts again at 0. The results count towards the scheduling.' : m==='sr'?'FSRS scheduling with target retention '+Math.round(100*(settings.retention||0.85))+'%: due puzzles first, then up to '+settings.newPerDay+' new ones per day, alternating motifs and colours. Grading: pattern not seen (first move wrong) = Forgot · calculation error, hint or very slow = Hard · otherwise Good/Easy by time.' : m==='wood'?'The filtered set in order. Adaptive daily goal: remaining puzzles ÷ remaining days of the cycle (plan '+(settings.woodPlan||'28,14,7,4,2,1')+'), at least '+(settings.woodDaily||0)+'; after that as many as you like. Yesterday\'s '+(settings.woodSlow??10)+' slowest puzzles come first. Times are logged per cycle (median, P90, share under 10 s). Goal: every cycle faster than the last.' : m==='arcade'?'Endless, no scheduling. Its own stack without replacement: a puzzle only returns once every puzzle in the filter has come up – across runs. 100 points per puzzle (+50 under '+settings.fastSec+' s, +20 under '+(2*settings.fastSec)+' s), hint = 50, mistake = 0. The combo multiplier rises from ×1.0 to ×3.0 with your streak; a mistake resets it. Puzzles you get wrong go to the Blunder Pile. "End run" records the high score.' : m==='master'?'Nur die Schlüsselstellungen aus den fünf Meisterpartien – benannt nach Partie und Zugnummer. Gemischt ohne Wiederholung, bis der Stapel durch ist; keine SR-Planung. Diese Puzzles erscheinen in keinem anderen Modus.' : m==='study'?'Eröffnungslinien und Meisterpartien (Set „Meisterpartien: Jobava London“) mit Kommentar zu jedem Zug. Erst ▶ Zug für Zug lesen, dann „Selbst spielen“ – der Abruf wird wie eine SR-Karte bewertet und geplant. Filter „Set“ wählt das Repertoire.' : m==='misses'?'Only puzzles you got wrong at some point (in any mode). Most frequent mistakes first. They leave only after '+MISS_NEED+' clean solves without a hint on different days.' : m==='sprenger'?'Puzzles you marked with 💣 as especially hard – from any mode. Drawn without replacement; they stay until you remove them with 💣 ✓.' : 'A random puzzle from its own stack without replacement (each returns only once all puzzles in the filter have come up); no effect on scheduling.'; }
+
+function updateStats(){
+  $('sDue').textContent=dueList().length; $('sNew').textContent=newToday()+'/'+settings.newPerDay; $('sSession').textContent=session.ok+'/'+session.n;
+  const fl=filtered(); const seen=fl.filter(p=>prog.cards[p.id]&&prog.cards[p.id].seen).length; $('bar').style.width=(fl.length?100*seen/fl.length:0)+'%';
+}
+
+// ---------- stats tab ----------
+function renderStats(){
+  const fl=filtered(); const cs=fl.map(p=>prog.cards[p.id]).filter(Boolean);
+  $('tTotal').textContent=fl.length; $('tSeen').textContent=cs.filter(c=>c.seen).length; $('tMature').textContent=cs.filter(c=>c.iv>=21).length;
+  const ok=cs.reduce((a,c)=>a+c.ok,0), n=cs.reduce((a,c)=>a+c.seen,0); $('tAcc').textContent=(n?Math.round(100*ok/n):0)+'%';
+  const times=cs.flatMap(c=>c.times); $('tAvg').textContent=times.length?Math.round(times.reduce((a,b)=>a+b,0)/times.length):'–';
+  // streak
+  let s=0; const d=new Date(); if(!(prog.days[d.toISOString().slice(0,10)]||{}).n) d.setDate(d.getDate()-1); for(;;){ const k=d.toISOString().slice(0,10); if(prog.days[k]&&prog.days[k].n){ s++; d.setDate(d.getDate()-1); } else break; }
+  $('tStreak').textContent=s;
+  const th={}; for(const p of fl){ const c=prog.cards[p.id]; const t=p.theme||'?'; th[t]=th[t]||{n:0,ok:0,seen:0,total:0}; th[t].total++; if(c){ th[t].n+=c.seen; th[t].ok+=c.ok; if(c.seen) th[t].seen++; } }
+  $('themeList').innerHTML=Object.entries(th).sort((a,b)=>b[1].total-a[1].total).map(([t,v])=>`<div><span>${t}</span><span>${v.seen}/${v.total} seen · ${v.n?Math.round(100*v.ok/v.n):0}%</span></div>`).join('')||'<div>–</div>';
+  const curT=Object.values((prog.wood.times||{})[prog.wood.cycle]||{}); const runLine=curT.length?`<div><span>Cycle ${prog.wood.cycle} (running) · ${curT.length} puzzles</span><span>Median ${pct(curT,.5)} s · P90 ${pct(curT,.9)} s · ${Math.round(100*curT.filter(t=>t<=10).length/curT.length)} % under 10 s</span></div>`:'';
+  $('woodList').innerHTML=runLine+prog.wood.results.map(r=>`<div><span>Cycle ${r.cycle} · ${r.date}</span><span>${r.ok}/${r.n} · ${Math.round(r.secs/60)} min · Ø ${r.n?Math.round(r.secs/r.n):0} s${r.times&&r.times.length?` · Median ${pct(r.times,.5)} s · P90 ${pct(r.times,.9)} s`:''}</span></div>`).reverse().join('')||'<div>no cycle completed yet</div>';
+  // Tagebuch
+  const byDay={}; for(const e of prog.events){ (byDay[e.d]=byDay[e.d]||[]).push(e); }
+  const days=Object.keys(byDay).sort().reverse().slice(0,30);
+  $('diaryList').innerHTML=days.map(d=>{ const ev=byDay[d]; const s=statsOf(ev); const modes={}; for(const e of ev) modes[e.mode]=(modes[e.mode]||0)+1; const mtxt=Object.entries(modes).map(([m,n])=>(({sr:'SR',wood:'Cycles',arcade:'Arcade',misses:'Pile',random:'Random',arts:'Adaptive',wow:'Mind-Blowing',sprenger:'Brain Breakers'}[m]||m)+' '+n)).join(' · ');
+    return `<div><span>${d} · ${s.n} puzzles <small style="color:var(--muted)">(${mtxt})</small></span><span>${s.acc} % · Median ${s.med} s · ${s.fast} % &lt;10 s · errors: ${s.errs.first} pattern / ${s.errs.calc} calculation</span></div>`; }).join('')||'<div>no entries yet – every puzzle is logged from now on</div>';
+  // Cycles per Tag im laufenden Zyklus + Zyklusvergleich
+  const wev=prog.events.filter(e=>e.mode==='wood'); const wc=prog.wood.cycle; const cyc=wev.filter(e=>e.cycle===wc); const wd={}; for(const e of cyc){ (wd[e.d]=wd[e.d]||[]).push(e); }
+  const wdays=Object.keys(wd).sort(); const total=filtered().length; let cum=0; const maxMed=Math.max(1,...wdays.map(d=>statsOf(wd[d]).med));
+  $('woodDaily').innerHTML=wdays.map(d=>{ const s=statsOf(wd[d]); cum+=s.n; return `<div><span>${d} · ${s.n} puzzles · ${Math.round(100*cum/Math.max(1,total))}% of the set</span><span>${bar(s.med,maxMed)}Median ${s.med} s · P90 ${s.p90} s · ${s.acc} %</span></div>`; }).join('')||'<div>Cycle '+wc+' has no entries yet</div>';
+  const cycles=[...new Set(wev.map(e=>e.cycle))].sort((a,b)=>a-b); const cmp=cycles.map(c=>{ const s=statsOf(wev.filter(e=>e.cycle===c)); return `Cycle ${c}: ${s.n} puzzles, median ${s.med} s, P90 ${s.p90} s, ${s.acc}% correct, ${s.fast}% under 10 s`; });
+  let same=''; if(cycles.length>=2){ const a=cycles[cycles.length-2], bb=cycles[cycles.length-1]; const ta={}; for(const e of wev) if(e.cycle===a&&!e.reveal) ta[e.id]=e.secs; const pairs=wev.filter(e=>e.cycle===bb&&!e.reveal&&ta[e.id]!=null).map(e=>[ta[e.id],e.secs]); if(pairs.length){ const faster=pairs.filter(([x,y])=>y<x).length; const medA=pct(pairs.map(p=>p[0]),.5), medB=pct(pairs.map(p=>p[1]),.5); same=` · Same puzzles, cycle ${a}→${bb}: ${Math.round(100*faster/pairs.length)}% faster, median ${medA} s → ${medB} s (${pairs.length} pairs)`; } }
+  const ci=woodCycleInfo(filtered()); $('woodCompare').textContent='Cycle '+wc+': day '+ci.dayNo+'/'+ci.days+', '+(filtered().length-ci.remaining)+'/'+filtered().length+' done (target by today ≈ '+Math.min(filtered().length,Math.round(filtered().length*ci.dayNo/ci.days))+'), planned end '+ci.endDate+(ci.forecast?', forecast '+ci.forecast:'')+'. '+(cmp.join(' | ')||'')+same;
+  // Arcade runs mit Details
+  const runEv=prog.events.filter(e=>e.mode==='arcade'&&e.run===arcadeRun.start); const arcLine=arcadeRun.solved?(()=>{ const s=statsOf(runEv); return `<div><span><b>Current run</b> · ${arcadeRun.score} points · for ${Math.round((Date.now()-arcadeRun.start)/60000)} min</span><span>${arcadeRun.solved} puzzles · streak ${arcadeRun.best} · ${s.acc} % · Med ${s.med} s – "End run" saves it to the list</span></div>`; })():'';
+  $('arcadeList').innerHTML=arcLine+prog.arcade.highscores.map((h,i)=>`<div data-run="${h.run||''}" style="cursor:pointer"><span>${i+1}. ${h.score} points · ${h.date}${h.order==='seq'?' · seq.':''}</span><span>${h.solved} puzzles · streak ${h.best} · ${h.mins} min${h.acc!=null?` · ${h.acc} % · Med ${h.med} s · ${h.ppm} P/min`:''}</span></div>`).join('')||'<div>no run saved yet</div>';
+  $('arcadeDetail').innerHTML=''; document.querySelectorAll('#arcadeList div[data-run]').forEach(el=>el.onclick=()=>{ const h=prog.arcade.highscores.find(x=>String(x.run)===el.dataset.run); if(!h||!h.themes) { $('arcadeDetail').innerHTML='<div>no details for this run</div>'; return; }
+    const ev=prog.events.filter(e=>e.run===h.run); const s=statsOf(ev); const rb={}; for(const e of ev){ const k=Math.floor(e.rating/100)*100; rb[k]=rb[k]||{n:0,ok:0}; rb[k].n++; if(e.ok&&!e.hint) rb[k].ok++; }
+    $('arcadeDetail').innerHTML=`<div><span><b>Run of ${h.date}</b> – ${h.solved} puzzles, ${h.mins} min, ${h.ppm} points/min</span><span>P90 ${s.p90} s · ${s.fast} % &lt;10 s · errors: ${s.errs.first} pattern / ${s.errs.calc} calculation / ${s.errs.hint} hint</span></div>`+Object.entries(h.themes).sort((a,b)=>b[1].n-a[1].n).map(([t,v])=>`<div><span>${t}</span><span>${v.n}× · ${v.acc} % · Med ${v.med} s</span></div>`).join('')+Object.entries(rb).sort((a,b)=>a[0]-b[0]).map(([k,v])=>`<div><span>Rating ${k}–${+k+99}</span><span>${v.n}× · ${Math.round(100*v.ok/v.n)} %</span></div>`).join(''); });
+  const ml=missList(); $('missCount').textContent=ml.length?'('+ml.length+')':''; $('missList').innerHTML=ml.slice(0,30).map(p=>`<div><span>${p.name||p.id} · ${p.theme}</span><span>${prog.misses[p.id].n}× wrong · ${prog.misses[p.id].last} · ${prog.misses[p.id].ok||0}/${MISS_NEED} ✓</span></div>`).join('')||'<div>empty 🎉</div>';
+  $('hardList').innerHTML=fl.map(p=>[p,card(p.id)]).filter(x=>x[1]&&x[1].seen>=2).sort((a,b)=>(b[1].fail/b[1].seen)-(a[1].fail/a[1].seen)).slice(0,15).map(([p,c])=>`<div><span>${p.id} · ${p.theme}</span><span>${c.fail}/${c.seen} wrong · D ${c.d.toFixed(1)} · S ${Math.round(c.s)} d</span></div>`).join('')||'<div>–</div>';
+  const E={first:0,calc:0,hint:0,slow:0}, C={sc:0,sw:0,uc:0,uw:0}; for(const c of cs){ for(const k in E) E[k]+=(c.errs&&c.errs[k])||0; for(const k in C) C[k]+=(c.cal&&c.cal[k])||0; }
+  $('errList').innerHTML=Object.entries(E).map(([k,v])=>`<div><span>${ERR_LABEL[k]}</span><span>${v}×</span></div>`).join('');
+  const cn=C.sc+C.sw+C.uc+C.uw; $('calList').innerHTML=cn?`<div><span>Sure → correct</span><span>${C.sc} (${Math.round(100*C.sc/Math.max(1,C.sc+C.sw))}% of "Sure")</span></div><div><span>Sure → wrong (overconfidence)</span><span>${C.sw}</span></div><div><span>Unsure → correct (underconfidence)</span><span>${C.uc}</span></div><div><span>Unsure → wrong</span><span>${C.uw}</span></div>`:'<div>Turn on calibration in Settings</div>';
+}
+
+// ---------- sets tab / import ----------
+function renderSets(){
+  const themes=[...new Set(puzzles.map(p=>p.theme||'?'))].sort();
+  $('fTheme').innerHTML='<option value="">all</option>'+themes.map(t=>`<option ${settings.filter.theme===t?'selected':''}>${t}</option>`).join('');
+  const sets=[...new Set(puzzles.map(p=>p.set||'Starter set'))].sort();
+  $('fSet').innerHTML='<option value="">all</option>'+sets.map(t=>`<option ${settings.filter.set===t?'selected':''}>${t}</option>`).join('');
+  $('fMin').value=settings.filter.min; $('fMax').value=settings.filter.max;
+  const rs=puzzles.map(p=>p.rating).filter(Boolean);
+  $('setInfo').textContent=`${puzzles.length} puzzles · ${sets.length} sets · ${themes.length} themes · rating ${rs.length?Math.min(...rs)+'–'+Math.max(...rs):'–'} · in filter: ${filtered().length}`;
+}
+$('applyFilter').onclick=()=>{ settings.filter={set:$('fSet').value,theme:$('fTheme').value,min:$('fMin').value,max:$('fMax').value}; saveSettings(); renderSets(); toast('Filter applied'); };
+function parseImport(text){
+  if(/\[FEN\s+"/.test(text)) return parsePGN(text, $('premoveBox').checked);
+  const out=[]; const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  for(const l of lines){
+    if(/^PuzzleId,FEN/i.test(l)) continue;
+    let p=null;
+    if(l.includes(';')){ const [fen,mv,theme,rating]=l.split(';').map(s=>s.trim()); if(fen&&mv) p={id:'u'+hash(fen+mv),fen,moves:mv.split(/\s+/),theme:theme||'Import',rating:+rating||1500,premove:$('premoveBox').checked}; }
+    else { const c=l.split(','); if(c.length>=3 && c[1].split(' ').length>=4){ const themes=(c[7]||'').split(' ').filter(Boolean); const theme=themes.find(t=>/mateIn|fork|pin|skewer|discovered|sacrifice|deflection|attraction|backRank|hanging|trapped|promotion|zugzwang|quiet/i.test(t))||themes.find(t=>/mate/i.test(t))||themes[0]||'Lichess';
+      p={id:c[0],fen:c[1],moves:c[2].trim().split(/\s+/),theme:theme,rating:+c[3]||1500,premove:true,url:c[8]||''}; } }
+    if(p && /^[prnbqkPRNBQK1-8\/]+ [wb] /.test(p.fen) && p.moves.every(m=>/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(m))) out.push(p);
+  }
+  return out;
+}
+function hash(s){ let h=0; for(const ch of s) h=(h*31+ch.charCodeAt(0))|0; return (h>>>0).toString(36); }
+function doImport(replace){
+  const text=$('pasteBox').value; const all=parseImport(text); const errs=all.filter(p=>p.error); const ps=all.filter(p=>!p.error);
+  if(!ps.length){ $('importNote').textContent='No valid puzzles found.'+(errs.length?' Errors: '+errs.slice(0,3).map(e=>e.error).join('; '):''); return; }
+  if(replace) puzzles=[]; const ids=new Set(puzzles.map(p=>p.id)); let add=0; for(const p of ps) if(!ids.has(p.id)){ puzzles.push(p); ids.add(p.id); add++; }
+  savePuzzles(); renderSets(); $('importNote').textContent=add+' puzzles added ('+(ps.length-add)+' duplicates skipped'+(errs.length?', '+errs.length+' unreadable':'')+').'; $('pasteBox').value='';
+}
+$('importBtn').onclick=()=>doImport(false); $('replaceBtn').onclick=()=>doImport(true);
+$('resetSetBtn').onclick=()=>{ puzzles=BUILTIN.slice(); savePuzzles(); renderSets(); toast('Starter set restored'); };
+function addLines(arr,label){ const ids=new Set(puzzles.map(p=>p.id)); let add=0; for(const p of arr) if(!ids.has(p.id)){ puzzles.push(JSON.parse(JSON.stringify(p))); add++; } savePuzzles(); renderSets(); updateStats(); toast(add?add+' '+label+' added':'Linien schon vorhanden'); }
+$('jobexBtn').onclick=()=>addLines(OPENINGS_EXPLORER,'Explorer-Linien');
+$('caroBtn').onclick=()=>addLines(OPENINGS_BLACK,'Schwarz-Linien');
+$('wpBtn').onclick=async()=>{ $('wpBtn').disabled=true; $('wpBtn').textContent='Loading …'; try{ const r=await fetch('data/puzzles.json'); if(!r.ok) throw new Error(r.status); const arr=await r.json(); addLines(arr,'Cycles-Puzzles'); }catch(e){ toast('The set could not be loaded ('+e.message+')'); } $('wpBtn').disabled=false; $('wpBtn').textContent='Cycles Set 1 laden (1024 Puzzles, 16 Studies, 1200–1550)'; };
+$('jobavaBtn').onclick=()=>{ const ids=new Set(puzzles.map(p=>p.id)); let add=0; for(const p of OPENINGS) if(!ids.has(p.id)){ puzzles.push(JSON.parse(JSON.stringify(p))); add++; } savePuzzles(); renderSets(); updateStats(); toast(add?add+' Jobava-Linien hinzugefügt':'Linien schon vorhanden'); };
+$('file').onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ $('pasteBox').value=r.result; doImport(false); }; r.readAsText(f); };
+
+// ---------- settings ----------
+function applyTheme(){ document.body.classList.toggle('brown', settings.theme==='brown'); document.body.classList.toggle('neon', settings.theme==='neon'); }
+function renderSettings(){ $('autoNext').value=settings.autoNext??'1'; $('fxOn').value=settings.fxOn??'1'; $('theme').value=settings.theme||'green'; $('newPerDay').value=settings.newPerDay; $('fastSec').value=settings.fastSec; $('retention').value=String(settings.retention||0.85); $('calib').value=settings.calib||'0'; $('woodDaily').value=settings.woodDaily??36; $('woodPlan').value=settings.woodPlan||'28,14,7,4,2,1'; $('woodStart').value=prog.wood.cycleStart||today(); $('woodSlow').value=settings.woodSlow??10; $('autoGrade').value=settings.autoGrade; $('coords').value=settings.coords; }
+$('saveSettings').onclick=()=>{ settings.newPerDay=+$('newPerDay').value||0; settings.fastSec=+$('fastSec').value||20; renderHud(); settings.retention=+$('retention').value||0.85; settings.calib=$('calib').value; settings.woodDaily=Math.max(0,+$('woodDaily').value||0); settings.woodPlan=$('woodPlan').value||'28,14,7,4,2,1'; if($('woodStart').value){ prog.wood.cycleStart=$('woodStart').value; saveProg(); } settings.woodSlow=Math.max(0,+$('woodSlow').value||0); settings.autoGrade=$('autoGrade').value; settings.coords=$('coords').value; settings.theme=$('theme').value; settings.autoNext=$('autoNext').value; settings.fxOn=$('fxOn').value; applyTheme(); saveSettings(); modeNote(); render(); updateStats(); toast('Saved'); };
+$('exportBtn').onclick=()=>{ $('progBox').value=JSON.stringify({prog,puzzles:ownPuzzles(),settings}); };
+$('copyBtn').onclick=()=>{ const t=JSON.stringify({prog,puzzles:ownPuzzles(),settings}); $('progBox').value=t; try{ navigator.clipboard.writeText(t).then(()=>toast('Copied'),()=>toast('Please copy manually')); }catch(e){ toast('Please copy manually'); } };
+$('importProgBtn').onclick=()=>{ try{ const o=JSON.parse($('progBox').value); if(o.prog) prog=o.prog; if(o.puzzles) puzzles=o.puzzles; if(o.settings) settings=Object.assign(settings,o.settings); saveProg(); savePuzzles(); saveSettings(); toast('Progress loaded'); if(LEVELS){ setTimeout(()=>location.reload(),700); return; } renderSets(); load(pick()); }catch(e){ toast('Invalid format'); } };
+$('wipeBtn').onclick=()=>{ if($('wipeBtn').dataset.c){ prog={cards:{},log:[],wood:{cycle:1,idx:0,results:[]},days:{}}; saveProg(); toast('Deleted'); $('wipeBtn').textContent='Delete progress'; delete $('wipeBtn').dataset.c; load(pick()); } else { $('wipeBtn').dataset.c='1'; $('wipeBtn').textContent='Really delete? (tap again)'; } };
+
+// ---------- tabs ----------
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{ document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('on',x===b)); for(const t of ['train','stats','sets','settings']) $('tab-'+t).classList.toggle('hidden',t!==b.dataset.tab); if(b.dataset.tab==='stats') renderStats(); if(b.dataset.tab==='sets') renderSets(); if(b.dataset.tab==='settings') renderSettings(); });
+
+// keyboard: n = next, h = hint
+document.addEventListener('keydown',e=>{ if(e.key==='n') load(pick()); if(e.key==='h') $('btnHint').click(); if(e.key==='ArrowLeft') rpGo(rp.idx-1); if(e.key==='ArrowRight') rpGo(rp.idx+1); });
+
+if(settings.mode && [...$('mode').options].some(o=>o.value===settings.mode)) $('mode').value=settings.mode;
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden' && cur && !solved && !rp.viewing) saveResume(); });
+window.addEventListener('pagehide',()=>{ if(cur && !solved && !rp.viewing) saveResume(); });
+
+// ---------- Cloud-Speicher: privater Nutzerbereich in der Artifact-Datenbank ----------
+// Dokumente unter data/users/<id>/: state (Einstellungen + Fortschritt ohne Karten/Ereignisse), cards-0..15, ev-<Tag>~<n>, puz-<n> (eigene Importe)
+var CLOUD={db:null, col:null, state:'init', lastSync:0, hashes:{}, timer:null, busy:false, again:false, err:''};
+function cloudDirty(){ if(!CLOUD || CLOUD.state!=='on') return; clearTimeout(CLOUD.timer); CLOUD.timer=setTimeout(cloudPush, 2500); }
+function hstr(s){ let x=0; for(let i=0;i<s.length;i++) x=(x*31+s.charCodeAt(i))|0; return x+':'+s.length; }
+function hnum(s){ let x=0; for(let i=0;i<s.length;i++) x=(x*31+s.charCodeAt(i))|0; return x>>>0; }
+function builtinIdSet(){ return new Set([...BUILTIN, ...OPENINGS, ...OPENINGS_EXPLORER, ...OPENINGS_BLACK, ...MASTER_GAMES, ...MASTER_PUZZLES].map(p=>p.id)); }
+const CARD_BUCKETS=16;
+function activityTime(p){ let t=0; for(const e of (p.events||[])) if(e.t>t) t=e.t; for(const c of Object.values(p.cards||{})) if(c&&c.last>t) t=c.last; return t; }
+function cloudBuild(){
+  const docs={}; const {cards, events, log, ...rest}=prog;
+  docs.state={v:1, settings, prog:rest, act:activityTime(prog)};
+  for(let i=0;i<CARD_BUCKETS;i++) docs['cards-'+i]={c:{}};
+  for(const [id,c] of Object.entries(prog.cards||{})) if(c && c.seen) docs['cards-'+(hnum(id)%CARD_BUCKETS)].c[id]=c;
+  const byDay={}; for(const e of (prog.events||[])) (byDay[e.d]=byDay[e.d]||[]).push(e);
+  for(const [d,ev] of Object.entries(byDay)) for(let k=0;k*700<ev.length;k++) docs['ev-'+d+'~'+k]={d, e:ev.slice(k*700,(k+1)*700)};
+  const bi=builtinIdSet(); const custom=puzzles.filter(p=>!bi.has(p.id) && p.set!=='WP Set1');
+  for(let k=0;k*400<custom.length;k++) docs['puz-'+k]={p:custom.slice(k*400,(k+1)*400)};
+  return docs;
+}
+function cloudUI(){ const el=$('cloudInfo'); if(!el) return; const t=CLOUD.lastSync?new Date(CLOUD.lastSync).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
+  el.textContent = CLOUD.state==='on' ? '☁️ Cloud-Speicher aktiv'+(t?' · zuletzt gesichert '+t:'')+(CLOUD.err?' · '+CLOUD.err:'') : CLOUD.state==='off' ? 'Progress is saved on this device.'+(CLOUD.err?' ('+CLOUD.err+')':'') : 'Progress is saved on this device.'; }
+async function cloudPush(){
+  if(CLOUD.state!=='on') return; if(CLOUD.busy){ CLOUD.again=true; return; } CLOUD.busy=true; CLOUD.again=false;
+  try{ const docs=cloudBuild(); let wrote=0;
+    for(const [name,body] of Object.entries(docs)){ const s=JSON.stringify(body); const hh=hstr(s); if(CLOUD.hashes[name]===hh) continue;
+      if(s.length>250000){ CLOUD.err='Dokument '+name+' zu groß'; continue; }
+      try{ await CLOUD.col.doc(name).set(body); CLOUD.hashes[name]=hh; wrote++; }
+      catch(e){ if(e&&e.code==='unavailable'){ await new Promise(r=>setTimeout(r,800+Math.random()*800)); try{ await CLOUD.col.doc(name).set(body); CLOUD.hashes[name]=hh; wrote++; }catch(e2){ CLOUD.err='Sicherung unterbrochen'; } }
+        else if(e&&(e.code==='revoked'||e.code==='not_granted'||e.code==='capability_disabled')){ CLOUD.state='off'; CLOUD.err=''; break; }
+        else if(e&&e.code==='quota_exceeded'){ CLOUD.err='Speicher voll'; break; }
+        else { CLOUD.err='Fehler beim Sichern ('+(e&&e.code||'?')+')'; } } }
+    if(wrote||!CLOUD.lastSync) CLOUD.lastSync=Date.now(); if(wrote) CLOUD.err='';
+  } finally { CLOUD.busy=false; cloudUI(); if(CLOUD.again) setTimeout(cloudPush,500); }
+}
+function mergeRemote(remote){
+  let restored=false; const localAct=activityTime(prog), remoteAct=(remote.state&&remote.state.act)||0;
+  for(const [id,c] of Object.entries(remote.cards)){ const l=prog.cards[id]; if(!l || !l.seen || (c.last||0)>(l.last||0)) prog.cards[id]=c; }
+  prog.events=prog.events||[]; const seen=new Set(prog.events.map(e=>e.t+'|'+e.id)); let addE=0;
+  for(const e of remote.events){ const k=e.t+'|'+e.id; if(!seen.has(k)){ prog.events.push(e); seen.add(k); addE++; } }
+  if(addE) prog.events.sort((a,b)=>a.t-b.t);
+  if(remote.state&&remote.state.prog){ const rp=remote.state.prog;
+    prog.misses=prog.misses||{}; for(const [id,m] of Object.entries(rp.misses||{})){ const l=prog.misses[id]; if(!l||((m.t||0)>(l.t||0))||(!m.t&&!l.t&&m.n>l.n)) prog.misses[id]=m; }
+    prog.sprenger=prog.sprenger||{}; for(const [id,s] of Object.entries(rp.sprenger||{})){ const l=prog.sprenger[id]; if(!l||(s.t||0)>(l.t||0)) prog.sprenger[id]=s; }
+    prog.wow=prog.wow||{}; for(const [id,s] of Object.entries(rp.wow||{})){ const l=prog.wow[id]; if(!l||(s.t||0)>(l.t||0)) prog.wow[id]=s; }
+    prog.days=prog.days||{}; for(const [d,v] of Object.entries(rp.days||{})){ const l=prog.days[d]; if(!l||(v.n||0)>(l.n||0)) prog.days[d]=v; }
+    if(remoteAct>=localAct){ for(const k of ['wood','arcade','study','resume','salt','artsRun','artsLastMg']) if(rp[k]!==undefined) prog[k]=rp[k]; restored = restored || remoteAct>localAct; }
+    if(remote.state.settings && (remoteAct>localAct || !HAD_LOCAL_SETTINGS)){ settings=Object.assign(settings, remote.state.settings); restored=true; }
+  }
+  const ids=new Set(puzzles.map(p=>p.id)); let addP=0; for(const p of remote.puzzles) if(!ids.has(p.id)){ puzzles.push(p); ids.add(p.id); addP++; }
+  return {restored, addE, addP};
+}
+async function cloudInit(){
+  try{
+    if(!(window.claude&&window.claude.use)){ CLOUD.state='off'; cloudUI(); return; }
+    const [db,user]=await Promise.all([window.claude.use('db'), window.claude.use('user')]);
+    const uid=user?await user.id():null; if(!db||!uid){ CLOUD.state='off'; cloudUI(); return; }
+    CLOUD.db=db; CLOUD.col=db.collection('data/users/'+uid);
+    const timeout=new Promise((_,rej)=>setTimeout(()=>rej({code:'timeout'}),10000));
+    const snap=await Promise.race([CLOUD.col.limit(1000).get(), timeout]);
+    const remote={state:null, cards:{}, events:[], puzzles:[]};
+    for(const d of snap.docs){ if(!d.exists) continue; const b=d.data(); const name=d.id; CLOUD.hashes[name]=hstr(JSON.stringify(b));
+      if(name==='state') remote.state=b; else if(name.startsWith('cards-')) Object.assign(remote.cards,b.c||{}); else if(name.startsWith('ev-')) remote.events.push(...(b.e||[])); else if(name.startsWith('puz-')) remote.puzzles.push(...(b.p||[])); }
+    if(snap.docs.length){ const r=mergeRemote(remote);
+      LS.set('tt_prog', prog); LS.set('tt_settings', settings); LS.set('tt_puzzles', puzzles);
+      applyTheme(); renderSets(); renderHud(); updateStats();
+      if(r.restored){ if(settings.mode && [...$('mode').options].some(o=>o.value===settings.mode)) $('mode').value=settings.mode; modeNote(); renderHud(); cloudWait=false; if(wpReady) resumeOrPick(); toast('Fortschritt aus der Cloud wiederhergestellt'); }
+      else if(r.addE) toast('Cloud: '+r.addE+' Einträge von anderem Gerät übernommen'); }
+    CLOUD.state='on'; CLOUD.lastSync=Date.now(); cloudUI(); cloudPush();
+  }catch(e){ CLOUD.state='off'; CLOUD.err=e&&e.code==='timeout'?'keine Verbindung':(e&&e.code)||''; cloudUI(); }
+}
+// Alle Sets dauerhaft verfügbar: eingebaute Linien sofort, Cycles-Set aus der Datendatei nachladen (ohne Buttons)
+function mergeSet(arr,setName){ const ids=new Set(puzzles.map(p=>p.id)); let add=0; for(const p of arr) if(!ids.has(p.id)){ const q=JSON.parse(JSON.stringify(p)); if(setName&&!q.set) q.set=setName; puzzles.push(q); ids.add(p.id); add++; } if(add) savePuzzles(); return add; }
+function syncCanon(arr){ const ix=new Map(puzzles.map((p,i)=>[p.id,i])); let upd=0; for(const o of arr){ const i=ix.get(o.id); if(i===undefined) continue; const p=puzzles[i]; if(p.fen!==o.fen || !!p.premove!==!!o.premove || p.moves.join(' ')!==o.moves.join(' ') || p.set!==o.set){ p.fen=o.fen; p.moves=o.moves.slice(); p.premove=!!o.premove; p.set=o.set; upd++; } } if(upd) savePuzzles(); return upd; }
+syncCanon(BUILTIN);
+const SET_BY_THEME={'Jobava-KID':'Eröffnung: Jobava (Theorie)','Jobava':'Eröffnung: Jobava (Explorer)','Caro-Kann':'Eröffnung: Schwarz-Repertoire','Schwarz-vs-1.d4':'Eröffnung: Schwarz-Repertoire'};
+{ let fixed=0; for(const p of puzzles) if(!p.set && SET_BY_THEME[p.theme]){ p.set=SET_BY_THEME[p.theme]; fixed++; } if(fixed) savePuzzles(); }
+{ let upd=0; for(const o of OPENINGS){ const i=puzzles.findIndex(p=>p.id===o.id); if(i>=0 && JSON.stringify(puzzles[i].moves)+String(!!puzzles[i].notes)!==JSON.stringify(o.moves)+'true'){ puzzles[i]=Object.assign({},puzzles[i],JSON.parse(JSON.stringify(o))); upd++; } } if(upd) savePuzzles(); }
+mergeSet(OPENINGS,'Eröffnung: Jobava (Theorie)'); mergeSet(OPENINGS_EXPLORER,'Eröffnung: Jobava (Explorer)'); mergeSet(OPENINGS_BLACK,'Eröffnung: Schwarz-Repertoire'); mergeSet(MASTER_GAMES,'Meisterpartien: Jobava London'); mergeSet(MASTER_PUZZLES,'Meisterpuzzles: Jobava London'); if(settings.filter&&settings.filter.set==='Meisterpuzzles: Jobava London'){ settings.filter.set=''; saveSettings(); } { let upd=0; for(const o of MASTER_PUZZLES){ const i=puzzles.findIndex(p=>p.id===o.id); if(i>=0 && JSON.stringify([puzzles[i].fen,puzzles[i].moves,puzzles[i].name,puzzles[i].theme])!==JSON.stringify([o.fen,o.moves,o.name,o.theme])){ puzzles[i]=Object.assign({},puzzles[i],JSON.parse(JSON.stringify(o))); upd++; } } if(upd) savePuzzles(); } { let upd=0; for(const o of MASTER_GAMES){ const i=puzzles.findIndex(p=>p.id===o.id); if(i>=0 && JSON.stringify([puzzles[i].moves,puzzles[i].notes,puzzles[i].summary,puzzles[i].game])!==JSON.stringify([o.moves,o.notes,o.summary,o.game])){ puzzles[i]=Object.assign({},puzzles[i],JSON.parse(JSON.stringify(o))); upd++; } } if(upd) savePuzzles(); }
+applyTheme(); modeNote(); renderSets(); renderHud();
+let wpReady = !LEVELS && puzzles.some(p=>p.set==='WP Set1');
+let cloudWait = !!(window.claude&&window.claude.use);   // erst ziehen, wenn der Cloud-Stand da ist – sonst startet ein Gerät ohne lokalen Speicher scheinbar bei null
+function cloudDone(){ if(!cloudWait) return; cloudWait=false; if(wpReady && !cur) resumeOrPick(); }
+if(wpReady && !cloudWait) resumeOrPick(); else { pos=parseFEN('8/8/8/8/8/8/8/8 w - - 0 1'); render(); setMsg(wpReady?'Loading progress …':'Loading puzzles …',''); if(!LEVELS) setTimeout(()=>{ if(!wpReady){ wpReady=true; if(!cur && !cloudWait) resumeOrPick(); } }, 6000); setTimeout(cloudDone, 5000); }
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ hidT=now(); } else if(hidT){ if(cur&&!solved&&startT) startT+=now()-hidT; hidT=0; } });   // Uhr läuft nicht weiter, während die App im Hintergrund ist
+cloudInit().then(cloudDone,cloudDone); $('cloudSyncBtn').onclick=()=>{ if(CLOUD.state==='on'){ CLOUD.hashes={}; cloudPush(); toast('Synchronisiere …'); } else { cloudInit(); } };
+window.addEventListener('pagehide',()=>{ if(CLOUD.state==='on'){ clearTimeout(CLOUD.timer); cloudPush(); } });
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden' && CLOUD.state==='on'){ clearTimeout(CLOUD.timer); cloudPush(); } });
+(LEVELS?Promise.resolve(null):fetch('data/puzzles.json').then(r=>r.ok?r.json():[])).then(arr=>{ if(LEVELS){ levelInit(); return; } const add=mergeSet(arr); const fix=syncCanon(arr); const first=!wpReady; wpReady=true; if(add){ renderSets(); updateStats(); renderHud(); }
+  if(cloudWait){ if(!cur) setMsg('Loading progress …',''); } else if(first||!cur) resumeOrPick();
+  else if(add && !solved && ply<=firstUserPly && !hadError && !usedHint && $('mode').value!=='study'){ prog.resume=null; load(pick()); }   // Set kam verspätet: erstes Puzzle neu aus dem vollen Stapel ziehen
+  else if(fix && !solved){ const p=puzzles.find(x=>x.id===cur.id); if(p){ const k=queueKind; load(p); queueKind=k; } } }).catch(()=>{ if(!wpReady){ wpReady=true; if(!cur && !cloudWait) resumeOrPick(); toast('The main puzzle set could not be loaded'); } });
+</script>
+<script>
+(function(){ var h=document.getElementById('hero'); if(!h) return; var seen=false; try{ seen=localStorage.getItem('fc_started')==='1'; }catch(e){}
+  if(seen) h.classList.add('slim');
+  document.getElementById('heroStart').onclick=function(ev){ ev.stopPropagation(); try{ localStorage.setItem('fc_started','1'); }catch(e){} h.classList.add('slim'); window.scrollTo({top:0,behavior:'smooth'}); };
+  h.onclick=function(){ h.classList.toggle('slim'); };
+})();
+</script>
+<script>
+(function(){ var s=document.getElementById('pieceSet'); if(!s) return; var ok={fade:1,papercut:1,kosal:1,chessnut:1,fantasy:1};
+  s.value=ok[settings.pieces]?settings.pieces:'fade';
+  s.onchange=function(){ settings.pieces=s.value; saveSettings(); if(pos) render(); toast('Piece style: '+s.options[s.selectedIndex].text); };
+})();
+</script>
+</body>
+</html>

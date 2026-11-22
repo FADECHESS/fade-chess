@@ -1,0 +1,18 @@
+Fade Chess
+Copyright (c) 2026 Bernd Marquardt. All rights reserved.
+
+The code, texts, name and design of Fade Chess in this repository are not
+open source. No permission is granted to copy, modify, redistribute or use
+them commercially without prior written permission from the author.
+Contact: brndmrqdt@icloud.com
+
+Third-party material keeps its own licence and is not covered by the notice
+above:
+- Puzzles: Lichess puzzle database, CC0
+- Piece sets Papercut and Kosal: CC BY 4.0
+- Piece set Chessnut: Apache License 2.0
+- Piece set Fantasy: MIT License
+See credits.html and the LICENSE-* files for details.
+
+The cover artwork and the "Fade" piece set were generated with an AI image
+tool.
