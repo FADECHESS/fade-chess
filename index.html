@@ -813,7 +813,7 @@ function levelUpdate(o){ if(!LEVELS||!cur||(cur.src!=='band'&&cur.src!=='master'
   if(prog.events.filter(e=>e.id===cur.id).length>1) return;                     // nur der erste Versuch an einem Puzzle zählt fürs Rating
   const R=prog.rating||settings.level||1400, n=prog.ratingN||0; const S=(o.ok&&!o.reveal)?(o.hint?0.5:1):0; const E=1/(1+Math.pow(10,(cur.rating-R)/400)); const K=n<15?56:n<50?32:20;
   const nr=Math.max(400, Math.min(3000, R+K*(S-E))); const d=Math.round(nr)-Math.round(R); rdUpdate(R, cur.rating, S); prog.rating=nr; prog.ratingN=n+1;
-  prog.rHist=(prog.rHist||[]).concat(Math.round(nr)).slice(-200); prog.calibN=(prog.calibN||0)+1; if(!prog.deck && calReady()) deckMake();
+  prog.rHist=(prog.rHist||[]).concat(Math.round(nr)).slice(-200); prog.calibN=(prog.calibN||0)+1; if(!prog.deck && calReady()) deckMake(); else if(prog.deck) deckAdapt();
   levelInfo(d);
   if(bandsNeeded().some(x=>bandLoaded[x]!==true)) loadBands().then(k=>{ if(k){ renderSets(); updateStats(); } }); loadMaster(); }
 function levelSet(v){ settings.level=v; prog.rating=v; prog.ratingN=0; prog.rd=RD_START; prog.rHist=[]; prog.calibN=0; if(prog.deck){ prog.deckUsed=(prog.deckUsed||[]).concat(prog.deck.ids); prog.deck=null; } saveSettings(); saveProg(); $('levelBox').classList.add('hidden'); levelStart(true); }
@@ -856,16 +856,16 @@ function deckLeeches(){ if(!prog.deck) return new Set(); const ids=new Set(prog.
   for(const e of (prog.events||[]).slice(prog.deck.ev0||0)) if(e.mode==='arts'&&ids.has(e.id)&&(!e.ok||e.reveal)&&!e.skip) bad[e.id]=(bad[e.id]||0)+1;
   return new Set(Object.keys(bad).filter(id=>bad[id]>=DECK_LEECH)); }
 function deckLeft(){ if(!prog.deck) return 0; const {st}=artsState(), lc=deckLeeches(); return prog.deck.ids.filter(id=>!(st[id]&&st[id].ret)&&!lc.has(id)).length; }
-function deckMake(){ const R=plRating(), seen=new Set((prog.events||[]).map(e=>e.id)), used=new Set(prog.deckUsed||[]);
+function deckMake(Rb, carry, note){ const R=Rb||plRating(), keep=(carry||[]).slice(0,DECK_N), seen=new Set((prog.events||[]).map(e=>e.id)), used=new Set(prog.deckUsed||[]);
   const base=puzzles.filter(p=>p.src==='band'&&!seen.has(p.id)&&!used.has(p.id)); let lo=R-250, hi=R-50, pool=[];
   for(let w=0; w<4; w++){ pool=base.filter(p=>p.rating>=lo&&p.rating<=hi); if(pool.length>=DECK_N*1.5) break; lo-=100; hi+=50; }
-  if(pool.length<DECK_N/2) return false;
+  const need=DECK_N-keep.length; if(pool.length<need/2) return false;
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
-  const cap=Math.ceil(DECK_N/6), per={}, ids=[]; for(const p of pool){ const t=p.theme||''; if((per[t]||0)>=cap) continue; per[t]=(per[t]||0)+1; ids.push(p.id); if(ids.length>=DECK_N) break; }
+  const cap=Math.ceil(DECK_N/6), per={}, ids=keep.slice(); for(const p of pool){ const t=p.theme||''; if((per[t]||0)>=cap) continue; per[t]=(per[t]||0)+1; ids.push(p.id); if(ids.length>=DECK_N) break; }
   for(const p of pool){ if(ids.length>=DECK_N) break; if(!ids.includes(p.id)) ids.push(p.id); }
   prog.deck={n:(prog.decks||[]).length+1, ids, made:today(), R:Math.round(R), ci:ciHalf(), ev0:(prog.events||[]).length};
   prog.bands=prog.bands||[]; for(const id of ids){ const p=puzzles.find(x=>x.id===id); const b=bandOf(p.rating); if(!prog.bands.includes(b)) prog.bands.push(b); }
-  saveProg(); const msg='Calibration done: about '+Math.round(R)+' ± '+prog.deck.ci+'. Your stack '+prog.deck.n+' with '+ids.length+' puzzles is ready.'; toast(msg); setMsg('New stack',msg); fireworks(2,3); return true; }
+  saveProg(); const msg=note||('Calibration done: about '+Math.round(R)+' ± '+prog.deck.ci+'. Your stack '+prog.deck.n+' with '+ids.length+' puzzles is ready.'); toast(msg); setMsg('New stack',msg); fireworks(2,3); return true; }
 function deckCheck(){ if(!LEVELS||!prog.deck||deckLeft()>0) return; const d=prog.deck, lc=deckLeeches();
   const ev=(prog.events||[]).slice(d.ev0||0).filter(e=>e.mode==='arts'&&d.ids.includes(e.id));
   prog.decks=prog.decks||[]; prog.decks.push({n:d.n, size:d.ids.length, made:d.made, done:today(), attempts:ev.length, stuck:lc.size, R0:d.R, R1:plRating()});
@@ -949,6 +949,25 @@ function learnCard(){ const box=$('learnBox'); if(!box) return; const on=$('mode
     +(s.complete?'<p class="note" style="margin:8px 0 0">'+tr('Du hast den Kurs geschafft. Bereit für echte Puzzles auf deinem Niveau?','You finished the course. Ready for real puzzles at your level?')+' <button class="b p" id="learnNext">'+tr('Zum adaptiven Training','Go to adaptive training')+'</button></p>':'');
   box.querySelectorAll('.ldots button').forEach(b=>b.onclick=()=>learnGo(+b.dataset.i));
   const nx=$('learnNext'); if(nx) nx.onclick=()=>{ $('mode').value='arts'; settings.mode='arts'; saveSettings(); renderHud(); levelSet(900); }; }
+// Stapel passt nicht mehr: Wer innerhalb eines Stapels deutlich besser wird (oder sich klar überfordert), bekommt vorzeitig einen neuen.
+// Angefangene Puzzles wandern mit, ungesehene gehen zurück in den Pool.
+const DA_MIN=20, DA_UP=18, DA_DOWN=8, DA_STEP=150;
+function deckFirsts(){ const d=prog.deck; if(!d) return []; const ids=new Set(d.ids), seen=new Set(), out=[];
+  for(const e of (prog.events||[]).slice(d.ev0||0)){ if(e.mode!=='arts'||!ids.has(e.id)||seen.has(e.id)) continue; seen.add(e.id); out.push(e); } return out; }
+function deckAdapt(){ const d=prog.deck; if(!LEVELS||!d) return; const f=deckFirsts(); if(f.length<12) return; if(d.checked===f.length) return; d.checked=f.length;
+  const isClean=e=>e.ok&&!e.hint&&!e.reveal&&!e.skip&&(e.rho==null||e.rho<=1), isOk=e=>e.ok&&!e.reveal&&!e.skip;
+  const last=f.slice(-DA_MIN), clean=last.filter(isClean).length, okShort=f.slice(-12).filter(isOk).length;
+  const R=plRating(), lowCI=R-ciHalf(), highCI=R+ciHalf();
+  const up = (f.length>=DA_MIN && clean>=DA_UP) || lowCI>d.R+50, down = okShort<=4 || highCI<d.R-250;
+  if(up||down) deckRebuild(up?1:-1); }
+function deckRebuild(dir){ const d=prog.deck, {st}=artsState(), lc=deckLeeches();
+  const seenIds=d.ids.filter(id=>st[id]), carry=seenIds.filter(id=>!st[id].ret&&!lc.has(id));
+  const ev=(prog.events||[]).slice(d.ev0||0).filter(e=>e.mode==='arts'&&d.ids.includes(e.id));
+  prog.decks=prog.decks||[]; prog.decks.push({n:d.n, size:d.ids.length, made:d.made, done:today(), attempts:ev.length, stuck:lc.size, R0:d.R, R1:plRating(), early:dir>0?'up':'down', left:deckLeft()});
+  prog.deckUsed=(prog.deckUsed||[]).concat(seenIds.filter(id=>!carry.includes(id)));
+  const Rb=dir>0?Math.max(plRating(), d.R+DA_STEP):Math.min(plRating(), d.R-DA_STEP); prog.deck=null;
+  const note=(dir>0?'You have outgrown this stack. New stack at a higher level (about '+Math.round(Rb)+').':'This stack was too hard. New stack at a better-fitting level (about '+Math.round(Rb)+').')+' You keep '+carry.length+' puzzles you have started.';
+  if(!deckMake(Rb, carry, note)){ prog.calibN=0; saveProg(); } }
 function pick(){
   const mode=$('mode').value;
   if(mode==='master'){ const ml=puzzles.filter(p=>p.set==='Meisterpuzzles: Jobava London'); if(!ml.length) return null; const s=stackPool('master',ml); queueKind='Meisterpuzzles · Stapel '+s.pos+'/'+s.total+(s.round>1?' · round '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
@@ -1263,7 +1282,7 @@ function aiExport(full){
      '- Solved without error: '+pc(okAll.length,ev.length)+' · hint used: '+pc(ev.filter(e=>e.hint).length,ev.length)+' · solution revealed: '+pc(ev.filter(e=>e.reveal).length,ev.length),
      '- Median seconds per correct puzzle: '+med(okAll.map(e=>e.secs)),
      '- Rating of attempted puzzles: median '+med(ev.map(e=>e.rating).filter(Boolean))+', range '+(ev.length?Math.min(...ev.map(e=>e.rating||9999))+'–'+Math.max(...ev.map(e=>e.rating||0)):'')].join('\n'));
-  if(LEVELS) P('- Calibration and stacks: '+(prog.deck?'working on stack '+prog.deck.n+' ('+deckLeft()+' of '+prog.deck.ids.length+' left, started '+prog.deck.made+' at about '+prog.deck.R+')':'calibrating, 95% interval ± '+ciHalf())+'; stacks finished: '+((prog.decks||[]).map(d=>'#'+d.n+' '+d.size+' puzzles, '+d.made+' to '+d.done+', '+d.attempts+' attempts, '+d.stuck+' stuck, rating '+d.R0+' → '+d.R1).join('; ')||'none'));
+  if(LEVELS) P('- Calibration and stacks: '+(prog.deck?'working on stack '+prog.deck.n+' ('+deckLeft()+' of '+prog.deck.ids.length+' left, started '+prog.deck.made+' at about '+prog.deck.R+')':'calibrating, 95% interval ± '+ciHalf())+'; stacks finished: '+((prog.decks||[]).map(d=>'#'+d.n+' '+d.size+' puzzles, '+d.made+' to '+d.done+', '+d.attempts+' attempts, '+d.stuck+' stuck, rating '+d.R0+' → '+d.R1+(d.early?(' (ended early: '+(d.early==='up'?'outgrown':'too hard')+', '+d.left+' left)'):'')).join('; ')||'none'));
   if(LEVELS) P('- Current puzzle rating in this trainer: '+plRating()+' (after '+(prog.ratingN||0)+' rated first attempts; new puzzles are drawn about 200 points below it)');
   P('\n## By mode'); P(table(['mode',...H],[...group(e=>e.mode)].map(([k,a])=>stat(k,a))));
   P('\n## By day (most recent 30 training days)'); P(table(['date',...H],[...group(e=>e.d)].slice(-30).map(([k,a])=>stat(k,a))));
