@@ -26,6 +26,7 @@ header h1{font-size:18px;margin:0;letter-spacing:.3px}
 body{overflow-x:hidden}
 @media(min-width:760px){.layout{grid-template-columns:minmax(0,480px) 1fr;align-items:start}}
 .boardwrap{position:relative;width:100%;max-width:480px;margin:0 auto;user-select:none}
+.ldots{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}.ldots button{min-width:34px;padding:6px 8px;border-radius:999px;border:1px solid var(--line,#3a3f55);background:transparent;color:inherit;font:600 13px system-ui,sans-serif;cursor:pointer}.ldots button.done{background:#2bd67b33;border-color:#2bd67b}.ldots button.cur{background:#7df9ff;color:#0a0420;border-color:#7df9ff}.ldots button:disabled{opacity:.35;cursor:default}.lprog{height:6px;border-radius:3px;background:#ffffff1a;overflow:hidden;margin-top:8px}.lprog i{display:block;height:100%;background:linear-gradient(90deg,#7df9ff,#ff3fd0)}
 .mtbanner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.85);z-index:20;pointer-events:none;opacity:0;text-align:center;padding:16px 26px;border-radius:14px;background:rgba(10,4,32,.88);border:2px solid #ffd76b;box-shadow:0 0 28px rgba(255,215,107,.55),0 0 60px rgba(255,63,208,.35);white-space:nowrap}
 .mtbanner b{display:block;font:800 clamp(26px,8vw,40px)/1.05 system-ui,sans-serif;letter-spacing:.14em;color:#ffe9a8;text-shadow:0 0 10px #ffb84d,0 0 24px #ff3fd0}
 .mtbanner small{display:block;margin-top:6px;font:500 13px/1.3 system-ui,sans-serif;color:#cfefff;letter-spacing:.02em}
@@ -163,6 +164,7 @@ button.b{transition:transform .1s,background .2s}button.b:active{transform:scale
         <option value="wood">Cycles (whole set in order, timed)</option>
         <option value="random">Random (unscored)</option>
         <option value="arcade">🕹️ Arcade (points, combo, high score – endless)</option>
+        <option value="learn">🌱 Beginner course (12 lessons to get started)</option>
         <option value="arts">🧠 Adaptive (speed + mistakes drive repetition)</option>
         <option value="misses">🧺 Blunder Pile (only puzzles you got wrong)</option>
         <option value="wow">🤯 Mind-Blowing (your favourite puzzles)</option>
@@ -170,6 +172,7 @@ button.b{transition:transform .1s,background .2s}button.b:active{transform:scale
       </select></div>
   <div>
     <div class="panel hidden" id="levelBox" style="margin-bottom:10px"><h2>Choose your starting level</h2><p class="note">Pick the one closest to you. Your rating adjusts after every puzzle, so you can't choose wrong.</p><div id="levelBtns" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"></div></div>
+    <div class="panel hidden" id="learnBox" style="margin-bottom:10px"></div>
     <div class="boardwrap">
       <div class="board" id="board"></div>
       <div class="mtbanner" id="mtBanner" aria-live="polite"><b>MASTER TIME</b><small>A puzzle from a game between titled players</small></div>
@@ -355,7 +358,7 @@ zstdcat lichess_db_puzzle.csv.zst | awk -F, 'NR&gt;1 &amp;&amp; $4&gt;=1350 &amp
     <label class="l hidden" id="levelLbl">Your level (choosing one resets your puzzle rating)</label>
     <select id="levelSel" class="hidden"></select>
     <label class="l">Piece style</label>
-    <select id="pieceSet"><option value="cburnett">Classic</option><option value="papercut">Standard</option><option value="kosal">Rounded</option><option value="chessnut">Modern</option><option value="fantasy">Fantasy</option><option value="fade">Fade (Neon)</option></select>
+    <select id="pieceSet"><option value="fade">Fade</option><option value="cburnett">Classic</option><option value="papercut">Standard</option><option value="kosal">Rounded</option><option value="chessnut">Modern</option><option value="fantasy">Fantasy</option></select>
     <div class="row"><button class="b p" id="saveSettings">Save</button></div>
   </div>
   <div class="panel" style="margin-top:10px">
@@ -517,7 +520,7 @@ if(puzzles.some(p=>/^m[123]-/.test(p.id))) puzzles = puzzles.filter(p=>!/^m[123]
 let prog = LS.get('tt_prog', {cards:{}, log:[], wood:{cycle:1, idx:0, results:[]}, days:{}});
 prog.wood.slowQueue=prog.wood.slowQueue||[]; prog.wood.slowTotal=prog.wood.slowTotal||0; prog.wood.dayDone=prog.wood.dayDone||0;
 const HAD_LOCAL_SETTINGS = (()=>{ try{ return !!localStorage.getItem('tt_settings'); }catch(e){ return false; } })();
-let settings = Object.assign({mode:'arts', theme:'neon', pieces:'cburnett', newPerDay:10, fastSec:20, autoGrade:'auto', coords:'1', retention:0.85, calib:'0', woodDaily:36, woodSlow:10, filter:{theme:'',min:'',max:''}}, LS.get('tt_settings', {}));
+let settings = Object.assign({mode:'arts', theme:'neon', pieces:'fade', newPerDay:10, fastSec:20, autoGrade:'auto', coords:'1', retention:0.85, calib:'0', woodDaily:36, woodSlow:10, filter:{theme:'',min:'',max:''}}, LS.get('tt_settings', {}));
 function ownPuzzles(){ return LEVELS ? puzzles.filter(p=>p.src!=='band') : puzzles; }
 function savePuzzles(){ LS.set('tt_puzzles', ownPuzzles()); cloudDirty(); }
 prog.misses = prog.misses || {}; prog.arcade = prog.arcade || {highscores:[]}; prog.arcade.seq = prog.arcade.seq || {};
@@ -551,7 +554,7 @@ function missList(){ const fl=filtered(); return fl.filter(p=>isMiss(p.id)).sort
 let arcadeRun={score:0,solved:0,best:0,seen:new Set(),start:Date.now()};
 function arcadeBest(){ return prog.arcade.highscores.length?prog.arcade.highscores[0].score:0; }
 function arcadeMult(){ return Math.min(3, 1+0.2*Math.max(0,streak-1)); }
-function renderHud(){ const m=$('mode').value; $('arcadeHud').classList.toggle('hidden', m!=='arcade'); $('missHud').classList.toggle('hidden', m!=='misses'); $('artsHud').classList.toggle('hidden', m!=='arts'); if(m==='arts'){ artsHud(); mgFill(); mgUI(); } $('woodHud').classList.toggle('hidden', m!=='wood');
+function renderHud(){ const m=$('mode').value; learnCard(); $('arcadeHud').classList.toggle('hidden', m!=='arcade'); $('missHud').classList.toggle('hidden', m!=='misses'); $('artsHud').classList.toggle('hidden', m!=='arts'); if(m==='arts'){ artsHud(); mgFill(); mgUI(); } $('woodHud').classList.toggle('hidden', m!=='wood');
   if(m==='wood'){ const w=prog.wood; const fl=filtered(); const ci=woodCycleInfo(fl); const goal=ci.goal; const doneNew=Math.max(0,(w.dayDone||0)-(w.slowTotal||0)); const ev=(prog.events||[]).filter(e=>e.mode==='wood'&&e.d===today()&&!e.reveal); const med=pct(ev.map(e=>e.secs),.5);
     $('woodBar').style.width=(goal?Math.min(100,100*doneNew/goal):0)+'%';
     $('woodInfo').innerHTML='Today <b>'+doneNew+' / '+goal+'</b> (adaptive)'+(doneNew>=goal?' ✓ keep going if you like':'')+(w.slowTotal?' · slow repeats '+(w.slowTotal-(w.slowQueue||[]).length)+'/'+w.slowTotal:'')+(ev.length?' · Median '+med+' s · '+Math.round(100*ev.filter(e=>e.ok&&!e.hint).length/ev.length)+' %':'')
@@ -621,7 +624,7 @@ function autoGrade(secs){ // Bewertung aus Fehlertyp, Tipp, Zeit und Kalibrierun
 }
 function filtered(){
   const f=settings.filter; const md=$('mode')&&$('mode').value; const fs=(md!=='study'&&/^(Meisterpartien|Eröffnung)/.test(f.set||''))?'':f.set;   // Studium-Sets (Meisterpartien, Eröffnungslinien) als Filter gelten nur im Studium – sonst bliebe für Taktik-Modi nichts übrig
-    return puzzles.filter(p=>(!p.game||md==='study')&&p.src!=='master'&&p.set!=='Meisterpuzzles: Jobava London'&&(!fs||(p.set||'Starter set')===fs)&&(!f.theme||p.theme===f.theme)&&(f.min===''||p.rating>=+f.min)&&(f.max===''||p.rating<=+f.max));
+    return puzzles.filter(p=>(!p.game||md==='study')&&p.src!=='master'&&p.src!=='canon'&&p.set!=='Meisterpuzzles: Jobava London'&&(!fs||(p.set||'Starter set')===fs)&&(!f.theme||p.theme===f.theme)&&(f.min===''||p.rating>=+f.min)&&(f.max===''||p.rating<=+f.max));
 }
 // Reihenfolge: Fällige nach Fälligkeit, aber am selben Tag fällige gemischt; neue Puzzles in gemischter Reihenfolge (fester Zufalls-Schlüssel pro Puzzle, damit Themen und Ratings durcheinander kommen statt in Import-Reihenfolge)
 prog.salt = prog.salt || Math.random().toString(36).slice(2);
@@ -817,8 +820,10 @@ function levelSet(v){ settings.level=v; prog.rating=v; prog.ratingN=0; prog.rd=R
 function levelStart(fresh){ setMsg('Loading puzzles …',''); loadMaster(); loadBands().then(()=>{ wpReady=true; renderSets(); updateStats(); renderHud(); levelInfo(0);
     if(!puzzles.some(p=>p.src==='band')){ setMsg('The puzzles could not be loaded','Check your connection and reload the page.'); return; }
     if(fresh){ prog.resume=null; load(pick()); } else if(!cur) resumeOrPick(); }); }
-function levelInit(){ const box=$('levelBtns'); box.innerHTML=LEVEL_OPTS.map(o=>'<button class="b" data-l="'+o[0]+'" style="text-align:left;padding:10px 12px"><b>'+o[1]+'</b><br><small style="opacity:.75">'+o[2]+' · about '+o[0]+'</small></button>').join('');
-  box.querySelectorAll('button').forEach(b=>b.onclick=()=>levelSet(+b.dataset.l));
+function levelInit(){ if(!LEVELS){ const o=document.querySelector('#mode option[value=learn]'); if(o) o.remove(); } const box=$('levelBtns'); box.innerHTML=LEVEL_OPTS.map(o=>'<button class="b" data-l="'+o[0]+'" style="text-align:left;padding:10px 12px"><b>'+o[1]+'</b><br><small style="opacity:.75">'+o[2]+' · about '+o[0]+'</small></button>').join('');
+  box.insertAdjacentHTML('afterbegin','<button class="b" id="levelNew" style="grid-column:1/-1;text-align:left;padding:10px 12px"><b>🌱 '+tr('Ganz neu','Completely new')+'</b><br><small style="opacity:.75">'+tr('Ich kenne nur die Regeln · Einsteiger-Kurs mit 12 Lektionen','I only know the rules · beginner course with 12 lessons')+'</small></button>');
+  box.querySelectorAll('button[data-l]').forEach(b=>b.onclick=()=>levelSet(+b.dataset.l));
+  $('levelNew').onclick=()=>{ $('mode').value='learn'; settings.mode='learn'; saveSettings(); modeNote(); levelSet(700); };
   const sel=$('levelSel'); sel.innerHTML='<option value="">keep my current rating</option>'+LEVEL_OPTS.map(o=>'<option value="'+o[0]+'">'+o[1]+' (about '+o[0]+')</option>').join(''); sel.classList.remove('hidden'); $('levelLbl').classList.remove('hidden');
   sel.onchange=()=>{ if(sel.value){ levelSet(+sel.value); toast('Level set to '+sel.options[sel.selectedIndex].text); sel.value=''; } };
   if(prog.rating||settings.level) levelStart(false); else { $('levelBox').classList.remove('hidden'); setMsg('Choose your level','Pick a starting level above to get your first puzzle.'); } }
@@ -884,12 +889,73 @@ function avoidStats(ev){ const ae=ev.filter(e=>e.mode==='arts'), sk=ae.filter(e=
 function renderAvoid(){ const el=$('avoidList'); if(!el) return; const a=avoidStats(prog.events||[]);
   el.innerHTML=a.k?`<div><span>Skipped</span><span>${a.k} of ${a.n} attempts (${a.rate}%)</span></div><div><span>of these, on puzzles you had missed before</span><span>${a.again}</span></div>`+a.top.map(([t,k,r])=>`<div><span>${t}</span><span>${k}× skipped · ${r}% of attempts</span></div>`).join('')
     :'<div><span>Nothing skipped yet</span><span>–</span></div>'; }
+// ---------- Einsteiger-Kurs (nur öffentliche Version): 12 Lektionen mit je 20 Lernpuzzles, von leicht nach schwer ----------
+const LG=(document.documentElement.lang||'de').slice(0,2)==='en'?'en':'de'; const tr=(de,en)=>LG==='en'?en:de;
+const LESSONS={
+ hanging:   {de:['Freie Figuren schlagen','Eine Figur, die angegriffen und nicht gedeckt ist, kann man einfach schlagen. Schau vor jedem Zug zuerst: Steht irgendwo etwas ungeschützt?'],
+             en:['Take free pieces','A piece that is attacked and not defended can simply be taken. Before every move, check first: is anything left unprotected?']},
+ mate1:     {de:['Matt in 1','Matt heißt: Der König steht im Schach und kann nicht entkommen. Prüfe alle Schachgebote – eins davon setzt matt.'],
+             en:['Mate in one','Checkmate means the king is in check and cannot escape. Look at every check you can give – one of them is mate.']},
+ backrank:  {de:['Grundreihenmatt','Ein König hinter seinen eigenen Bauern hat oft kein Fluchtfeld. Eine Dame oder ein Turm auf der Grundreihe setzt dann matt.'],
+             en:['Back-rank mate','A king behind its own pawns often has no escape square. A queen or rook on the back rank then delivers mate.']},
+ fork:      {de:['Die Gabel','Eine Figur greift zwei gegnerische Figuren gleichzeitig an. Der Gegner kann nur eine retten. Springer sind besonders gute Gabelspieler.'],
+             en:['The fork','One piece attacks two enemy pieces at once. Your opponent can only save one. Knights are especially good at forks.']},
+ pin:       {de:['Die Fesselung','Eine Figur kann nicht ziehen, weil sonst eine wertvollere Figur dahinter – oft der König – ungeschützt wäre. Greife die gefesselte Figur an.'],
+             en:['The pin','A piece can\'t move because a more valuable piece behind it – often the king – would be exposed. Attack the pinned piece.']},
+ skewer:    {de:['Der Spieß','Wie eine Fesselung, nur umgekehrt: Die wertvollere Figur steht vorne, muss weichen, und die Figur dahinter geht verloren.'],
+             en:['The skewer','A pin in reverse: the more valuable piece stands in front, has to move away, and the piece behind it is lost.']},
+ discovered:{de:['Abzugsangriff','Eine Figur zieht weg und gibt dabei die Linie für eine andere frei. So entstehen zwei Drohungen auf einmal.'],
+             en:['Discovered attack','One piece moves away and opens a line for another. That creates two threats at once.']},
+ defender:  {de:['Den Verteidiger beseitigen','Wird eine Figur nur von einem Verteidiger geschützt, dann schlage oder vertreibe zuerst den Verteidiger.'],
+             en:['Remove the defender','If a piece is protected by only one defender, capture or chase away the defender first.']},
+ promotion: {de:['Bauernumwandlung','Ein Bauer, der die letzte Reihe erreicht, wird zur Dame. Dafür lohnt sich manchmal sogar ein Opfer.'],
+             en:['Promotion','A pawn that reaches the last rank becomes a queen. Sometimes that is even worth a sacrifice.']},
+ mate2:     {de:['Matt in 2','Jetzt brauchst du zwei Züge. Oft zwingt ein Schach oder ein Opfer den König auf ein Feld, auf dem dein zweiter Zug matt setzt.'],
+             en:['Mate in two','Now you need two moves. Often a check or a sacrifice forces the king onto a square where your second move mates.']},
+ trapped:   {de:['Gefangene Figur','Eine Figur ohne sichere Felder ist gefangen. Greife sie an, und sie geht verloren.'],
+             en:['Trapped piece','A piece with no safe squares is trapped. Attack it and it is lost.']},
+ deflection:{de:['Ablenkung','Lenke eine gegnerische Figur von ihrer Aufgabe ab, etwa vom Decken eines Feldes – dann schlägt deine eigentliche Drohung durch.'],
+             en:['Deflection','Lure an enemy piece away from its job, such as guarding a square – then your real threat comes through.']},
+};
+let canon=null, canonLoading=null;
+if(!LEVELS){ const o=document.querySelector('#mode option[value=learn]'); if(o) o.remove(); }
+function canonLoad(){ if(canon) return Promise.resolve(canon); if(canonLoading) return canonLoading;
+  canonLoading=fetch('data/canon.json').then(r=>r.ok?r.json():Promise.reject(r.status)).then(c=>{ c.lessons=c.lessons.filter(l=>l.puzzles.length); const ids=new Set(puzzles.map(p=>p.id));
+    for(const l of c.lessons) for(const p of l.puzzles) if(!ids.has(p.id)) puzzles.push({id:p.id, fen:p.fen, moves:p.moves, theme:p.theme, rating:p.rating, premove:true, set:'Einsteiger-Kurs', src:'canon', lesson:l.key, url:'https://lichess.org/training/'+p.id});
+    canon=c; return c; }).catch(e=>{ canonLoading=null; throw e; }); return canonLoading; }
+function learnSt(){ const s=prog.learn||(prog.learn={cur:0, done:{}, q:{}}); return s; }
+function learnLesson(i){ return canon&&canon.lessons[i]; }
+function learnQueue(l){ const s=learnSt(); if(!s.q[l.key]) s.q[l.key]=l.puzzles.map(p=>p.id); return s.q[l.key]; }
+function learnTitle(l){ const t=LESSONS[l.key]; return t?t[LG][0]:l.key; }
+function learnPick(){ if(!canon){ canonLoad().then(()=>{ if($('mode').value==='learn'&&!cur) load(pick()); else learnCard(); }).catch(()=>setMsg(tr('Der Kurs konnte nicht geladen werden','The course could not be loaded'),tr('Prüfe deine Verbindung und lade die Seite neu.','Check your connection and reload the page.'))); setMsg(tr('Lade den Kurs …','Loading the course …'),''); return null; }
+  const s=learnSt(); if(s.complete&&s.cur>=canon.lessons.length) s.cur=canon.lessons.length-1;
+  const l=learnLesson(s.cur); let q=learnQueue(l); if(!q.length){ q=s.q[l.key]=l.puzzles.map(p=>p.id); }   // abgeschlossene Lektion: zum Wiederholen neu durchlaufen
+  const id=q[0]; const p=puzzles.find(x=>x.id===id); queueKind=tr('Einsteiger-Kurs · Lektion ','Beginner course · lesson ')+(s.cur+1)+': '+learnTitle(l); learnCard(); return p||null; }
+function learnResult(ok){ if(!canon||!cur||cur.src!=='canon') return; const s=learnSt(); const l=learnLesson(s.cur); if(!l||cur.lesson!==l.key) return;
+  const q=learnQueue(l); const i=q.indexOf(cur.id); if(i<0) return; q.splice(i,1);
+  if(!ok) q.splice(Math.min(3,q.length),0,cur.id);   // nicht sauber gelöst: kommt nach drei anderen wieder
+  if(!q.length && !s.done[l.key]){ s.done[l.key]=true; const last=s.cur>=canon.lessons.length-1;
+    if(last){ s.complete=true; toast(tr('Kurs geschafft! Alle 12 Lektionen abgeschlossen.','Course complete! All 12 lessons done.')); fireworks(8,9); }
+    else { s.cur++; toast(tr('Lektion geschafft: ','Lesson complete: ')+learnTitle(l)); fireworks(4,5); } }
+  saveProg(); learnCard(); }
+function learnGo(i){ const s=learnSt(); if(i>s.cur && !s.done[canon.lessons[i-1].key]) return; s.cur=i; saveProg(); prog.resume=null; load(pick()); }
+function learnCard(){ const box=$('learnBox'); if(!box) return; const on=$('mode').value==='learn'; box.classList.toggle('hidden',!on); if(!on) return;
+  if(!canon){ box.innerHTML='<p class="note">'+tr('Lade den Kurs …','Loading the course …')+'</p>'; return; }
+  const s=learnSt(), n=canon.lessons.length, l=learnLesson(s.cur), t=LESSONS[l.key]||{de:[l.key,''],en:[l.key,'']}; const q=learnQueue(l), tot=l.puzzles.length, got=s.done[l.key]&&!q.length?tot:tot-q.length;
+  const maxOpen=canon.lessons.findIndex(x=>!s.done[x.key]); const open=maxOpen<0?n-1:maxOpen;
+  box.innerHTML='<h2 style="margin:0 0 4px">'+tr('Lektion ','Lesson ')+(s.cur+1)+tr(' von ',' of ')+n+': '+t[LG][0]+'</h2><p class="note" style="margin:0">'+t[LG][1]+'</p>'
+    +'<div class="lprog"><i style="width:'+Math.round(100*got/tot)+'%"></i></div><p class="note" style="margin:6px 0 0">'+got+tr(' von ',' of ')+tot+tr(' Puzzles sauber gelöst',' puzzles solved cleanly')+(s.done[l.key]?tr(' · Lektion abgeschlossen ✓',' · lesson complete ✓'):tr(' · Fehler und Tipps kommen später noch einmal',' · misses and hints come back a little later'))+'</p>'
+    +'<div class="ldots">'+canon.lessons.map((x,i)=>'<button data-i="'+i+'" class="'+(i===s.cur?'cur':s.done[x.key]?'done':'')+'" title="'+(LESSONS[x.key]?LESSONS[x.key][LG][0]:x.key)+'"'+(i>open?' disabled':'')+'>'+(s.done[x.key]&&i!==s.cur?'✓':(i+1))+'</button>').join('')+'</div>'
+    +(s.complete?'<p class="note" style="margin:8px 0 0">'+tr('Du hast den Kurs geschafft. Bereit für echte Puzzles auf deinem Niveau?','You finished the course. Ready for real puzzles at your level?')+' <button class="b p" id="learnNext">'+tr('Zum adaptiven Training','Go to adaptive training')+'</button></p>':'');
+  box.querySelectorAll('.ldots button').forEach(b=>b.onclick=()=>learnGo(+b.dataset.i));
+  const nx=$('learnNext'); if(nx) nx.onclick=()=>{ $('mode').value='arts'; settings.mode='arts'; saveSettings(); renderHud(); levelSet(900); }; }
 function pick(){
   const mode=$('mode').value;
   if(mode==='master'){ const ml=puzzles.filter(p=>p.set==='Meisterpuzzles: Jobava London'); if(!ml.length) return null; const s=stackPool('master',ml); queueKind='Meisterpuzzles · Stapel '+s.pos+'/'+s.total+(s.round>1?' · round '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
   const fl=filtered(); if(!fl.length){ return null; }
   if(mode==='random'){ const s=stackPool('random',fl); queueKind='Random · stack '+s.pos+'/'+s.total+(s.round>1?' · round '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
   if(mode==='arts') return artsPick();
+  if(mode==='learn') return learnPick();
   if(mode==='arcade'){ const fa=fl.filter(p=>!isOpening(p)); if(!fa.length){ queueKind='Arcade · no tactics puzzles in the filter'; return null; }   // Eröffnungslinien gehören ins Studium, nicht ins Arcade
     { const r=prog.arcade.retry||[]; const ids=new Set(fa.map(p=>p.id)); const k=r.findIndex(x=>x.left<=0&&ids.has(x.id)); if(k>=0){ const id=r[k].id; r.splice(k,1); saveProg(); queueKind='Arcade · 🔁 repeat (wrong '+ARC_RETRY+' puzzles ago)'; return fa.find(p=>p.id===id); } }
     if((settings.arcadeOrder||'random')==='seq'){ const i=seqPos(); if(i>=fa.length){ queueKind='Arcade · set complete'; return null; } queueKind='Arcade · '+(i+1)+'/'+fa.length; return fa[i]; }
@@ -1091,6 +1157,7 @@ function finish(){
     arcadeRun.score+=pts; arcadeRun.solved++; arcadeRun.best=Math.max(arcadeRun.best,streak);
     if(pts) showPts('+'+pts); if(arcadeRun.score>arcadeBest() && arcadeBest()>0 && arcadeRun.score-pts<=arcadeBest()) toast('🏆 New record!');
     $('sub').textContent=Math.round(secs)+' s · '+(pts?'+'+pts+' points (×'+arcadeMult().toFixed(1)+')':'0 points – goes to the Blunder Pile'); renderHud(); }
+  if(mode==='learn' && cur) learnResult(!hadError&&!usedHint);
   if(mode==='arts' && cur){ artsFeedback(secs); { const inMini=!!mini; mgRecord(!hadError&&!usedHint, artsNet(cur,secs)); if(!inMini){ if(cur.src!=='master') mgStreak(!hadError); mtTick(); } } deckCheck(); renderHud(); }
   if(mode==='misses' && cur){ $('sub').textContent=Math.round(secs)+' s · '+(hadError?'stays in the Blunder Pile':usedHint?'with a hint – stays in the Blunder Pile':'out of the Blunder Pile ✓'); renderHud(); }
   if(mode==='wood'){ const w=prog.wood; woodDone(cur.id, secs, good); w.ok=(w.ok||0)+(good?1:0); w.secs=(w.secs||0)+secs; saveProg(); renderHud(); }
@@ -1115,7 +1182,8 @@ function finishAfterReveal(){
   $('btnAsk').disabled=false;
   const mode=$('mode').value; session.n++; streak=0;
   logEvent({ok:false, hint:false, secs:(now()-startT)/1000, err:'first', reveal:true});
-  if(cur){ addMiss(cur.id); if(mode==='arcade'){ arcRetryTick(); arcRetryAdd(cur.id); arcadeRun.seen.add(cur.id); arcadeRun.solved++; if((settings.arcadeOrder||'random')==='seq') seqAdvance(); renderHud(); } if(mode==='misses') renderHud(); if(mode==='arts'){ artsFeedback(0,true); { const inMini=!!mini; mgRecord(false, null); if(!inMini){ if(cur.src!=='master') mgStreak(false); mtTick(); } } deckCheck(); renderHud(); } }
+  if(mode==='learn') learnResult(false);
+  if(cur){ if(mode!=='learn') addMiss(cur.id); if(mode==='arcade'){ arcRetryTick(); arcRetryAdd(cur.id); arcadeRun.seen.add(cur.id); arcadeRun.solved++; if((settings.arcadeOrder||'random')==='seq') seqAdvance(); renderHud(); } if(mode==='misses') renderHud(); if(mode==='arts'){ artsFeedback(0,true); { const inMini=!!mini; mgRecord(false, null); if(!inMini){ if(cur.src!=='master') mgStreak(false); mtTick(); } } deckCheck(); renderHud(); } }
   showReplay();
   if(mode==='sr'){ if(cur && (!prog.cards[cur.id]||prog.cards[cur.id].seen===0)){ const d=today(); prog.days[d]=prog.days[d]||{n:0,ok:0,new:0}; prog.days[d].new++; } review(cur.id,1,null,{err:errAtPly===null?'first':(errAtPly===firstUserPly?'first':'calc'),cal:calib}); }
   if(mode==='wood'){ woodDone(cur.id,null,false); review(cur.id,1,null,{err:'first',cal:calib}); }
@@ -1129,7 +1197,7 @@ $('mgStart').onclick=()=>{ if(mini){ mgStop('Mini-game cancelled'); load(pick())
 $('btnWow').onclick=()=>{ if(!cur) return; const on=toggleWow(cur.id); syncMissBtn(); toast(on?'🤯 Marked as Mind-Blowing':'Mind-Blowing mark removed'); renderHud(); };
 $('btnSpr').onclick=()=>{ if(!cur) return; const on=toggleSpr(cur.id); syncMissBtn(); toast(on?'💣 Added to the Brain Breakers':'Removed from the Brain Breakers'); renderHud(); };
 $('btnRetry').onclick=()=>{ if(!cur) return; const k=queueKind; load(cur); queueKind=k; };
-$('btnNext').onclick=()=>{ skipRecord(); if($('mode').value==='study'){ if(study.phase==='learn'){ studyRecall(); return; } prog.study.idx=(prog.study.idx||0)+1; saveProg(); study={phase:null}; } load(pick()); };
+$('btnNext').onclick=()=>{ skipRecord(); if($('mode').value==='learn'&&cur&&!solved&&now()-shownT>1500) learnResult(false); if($('mode').value==='study'){ if(study.phase==='learn'){ studyRecall(); return; } prog.study.idx=(prog.study.idx||0)+1; saveProg(); study={phase:null}; } load(pick()); };
 document.querySelectorAll('#gradeRow button').forEach(b=>b.onclick=()=>{ const g={1:1,3:2,4:3,5:4}[+b.dataset.q]; const {err}=autoGrade((now()-startT)/1000); review(cur.id,g,(now()-startT)/1000,{err,cal:calib}); $('gradeRow').classList.add('hidden'); if(g>=2) session.ok++; updateStats(); load(pick()); });
 $('mode').onchange=()=>{ settings.mode=$('mode').value; saveSettings(); study={phase:null}; modeNote(); renderHud(); resumeOrPick(); };
 $('aEnd').onclick=endArcadeRun;
@@ -1250,7 +1318,7 @@ $('aiSave').onclick=()=>{ const t=aiExport(true); const name='fade-chess-ai-expo
 
 $('aOrder').onchange=()=>{ settings.arcadeOrder=$('aOrder').value; saveSettings(); renderHud(); load(pick()); };
 $('aReset').onclick=()=>{ if($('aReset').dataset.c){ prog.arcade.seq[seqKey()]=0; saveProg(); delete $('aReset').dataset.c; $('aReset').textContent='↺'; toast('Position reset to 1'); renderHud(); load(pick()); } else { $('aReset').dataset.c='1'; $('aReset').textContent='Sure?'; setTimeout(()=>{ delete $('aReset').dataset.c; $('aReset').textContent='↺'; },2500); } };
-function modeNote(){ const m=$('mode').value; $('modeNote').textContent = m==='wow'?'Puzzles you marked with 🤯 as Mind-Blowing – the most beautiful and surprising ones, to enjoy and revisit. Drawn without replacement, no scheduling; they stay until you remove the mark with 🤯 ✓.' : m==='arts'?'The order adapts to you: every puzzle has a priority that grows the longer it has been away. A mistake → it returns after a few puzzles; correct but slow → soon; correct and at target speed → only after a long break. What counts is think time: total time minus the opponent\'s replies and the time to enter moves. The target grows with the number of moves ('+settings.fastSec+' s for one move, +50% for each further move; the base is the time threshold in Settings). Three clean solves at target speed on different days = automated, and the puzzle leaves the stack. New puzzles fill the gaps. Marks: 🧺 Blunder Pile · 💣 Brain Breakers · 🤯 Mind-Blowing. Mini-game event: after '+MG_EVERY+' correct solves in a row you get up to 5 puzzles of one motif back to back (e.g. "Skewer Training"), preferably your weakest motif; afterwards the streak starts again at 0. The results count towards the scheduling.' : m==='sr'?'FSRS scheduling with target retention '+Math.round(100*(settings.retention||0.85))+'%: due puzzles first, then up to '+settings.newPerDay+' new ones per day, alternating motifs and colours. Grading: pattern not seen (first move wrong) = Forgot · calculation error, hint or very slow = Hard · otherwise Good/Easy by time.' : m==='wood'?'The filtered set in order. Adaptive daily goal: remaining puzzles ÷ remaining days of the cycle (plan '+(settings.woodPlan||'28,14,7,4,2,1')+'), at least '+(settings.woodDaily||0)+'; after that as many as you like. Yesterday\'s '+(settings.woodSlow??10)+' slowest puzzles come first. Times are logged per cycle (median, P90, share under 10 s). Goal: every cycle faster than the last.' : m==='arcade'?'Endless, no scheduling. Its own stack without replacement: a puzzle only returns once every puzzle in the filter has come up – across runs. 100 points per puzzle (+50 under '+settings.fastSec+' s, +20 under '+(2*settings.fastSec)+' s), hint = 50, mistake = 0. The combo multiplier rises from ×1.0 to ×3.0 with your streak; a mistake resets it. Puzzles you get wrong go to the Blunder Pile. "End run" records the high score.' : m==='master'?'Nur die Schlüsselstellungen aus den fünf Meisterpartien – benannt nach Partie und Zugnummer. Gemischt ohne Wiederholung, bis der Stapel durch ist; keine SR-Planung. Diese Puzzles erscheinen in keinem anderen Modus.' : m==='study'?'Eröffnungslinien und Meisterpartien (Set „Meisterpartien: Jobava London“) mit Kommentar zu jedem Zug. Erst ▶ Zug für Zug lesen, dann „Selbst spielen“ – der Abruf wird wie eine SR-Karte bewertet und geplant. Filter „Set“ wählt das Repertoire.' : m==='misses'?'Only puzzles you got wrong at some point (in any mode). Most frequent mistakes first. They leave only after '+MISS_NEED+' clean solves without a hint on different days.' : m==='sprenger'?'Puzzles you marked with 💣 as especially hard – from any mode. Drawn without replacement; they stay until you remove them with 💣 ✓.' : 'A random puzzle from its own stack without replacement (each returns only once all puzzles in the filter have come up); no effect on scheduling.'; }
+function modeNote(){ const m=$('mode').value; $('modeNote').textContent = m==='learn'?tr('Für alle, die die Regeln kennen und noch keine Erfahrung haben: 12 Lektionen mit je 20 Puzzles, von leicht nach schwer. Was du nicht sauber löst, kommt kurz danach noch einmal.','For anyone who knows the rules but has no experience yet: 12 lessons of 20 puzzles each, from easy to harder. Anything you don\'t solve cleanly comes back shortly after.'):m==='wow'?'Puzzles you marked with 🤯 as Mind-Blowing – the most beautiful and surprising ones, to enjoy and revisit. Drawn without replacement, no scheduling; they stay until you remove the mark with 🤯 ✓.' : m==='arts'?'The order adapts to you: every puzzle has a priority that grows the longer it has been away. A mistake → it returns after a few puzzles; correct but slow → soon; correct and at target speed → only after a long break. What counts is think time: total time minus the opponent\'s replies and the time to enter moves. The target grows with the number of moves ('+settings.fastSec+' s for one move, +50% for each further move; the base is the time threshold in Settings). Three clean solves at target speed on different days = automated, and the puzzle leaves the stack. New puzzles fill the gaps. Marks: 🧺 Blunder Pile · 💣 Brain Breakers · 🤯 Mind-Blowing. Mini-game event: after '+MG_EVERY+' correct solves in a row you get up to 5 puzzles of one motif back to back (e.g. "Skewer Training"), preferably your weakest motif; afterwards the streak starts again at 0. The results count towards the scheduling.' : m==='sr'?'FSRS scheduling with target retention '+Math.round(100*(settings.retention||0.85))+'%: due puzzles first, then up to '+settings.newPerDay+' new ones per day, alternating motifs and colours. Grading: pattern not seen (first move wrong) = Forgot · calculation error, hint or very slow = Hard · otherwise Good/Easy by time.' : m==='wood'?'The filtered set in order. Adaptive daily goal: remaining puzzles ÷ remaining days of the cycle (plan '+(settings.woodPlan||'28,14,7,4,2,1')+'), at least '+(settings.woodDaily||0)+'; after that as many as you like. Yesterday\'s '+(settings.woodSlow??10)+' slowest puzzles come first. Times are logged per cycle (median, P90, share under 10 s). Goal: every cycle faster than the last.' : m==='arcade'?'Endless, no scheduling. Its own stack without replacement: a puzzle only returns once every puzzle in the filter has come up – across runs. 100 points per puzzle (+50 under '+settings.fastSec+' s, +20 under '+(2*settings.fastSec)+' s), hint = 50, mistake = 0. The combo multiplier rises from ×1.0 to ×3.0 with your streak; a mistake resets it. Puzzles you get wrong go to the Blunder Pile. "End run" records the high score.' : m==='master'?'Nur die Schlüsselstellungen aus den fünf Meisterpartien – benannt nach Partie und Zugnummer. Gemischt ohne Wiederholung, bis der Stapel durch ist; keine SR-Planung. Diese Puzzles erscheinen in keinem anderen Modus.' : m==='study'?'Eröffnungslinien und Meisterpartien (Set „Meisterpartien: Jobava London“) mit Kommentar zu jedem Zug. Erst ▶ Zug für Zug lesen, dann „Selbst spielen“ – der Abruf wird wie eine SR-Karte bewertet und geplant. Filter „Set“ wählt das Repertoire.' : m==='misses'?'Only puzzles you got wrong at some point (in any mode). Most frequent mistakes first. They leave only after '+MISS_NEED+' clean solves without a hint on different days.' : m==='sprenger'?'Puzzles you marked with 💣 as especially hard – from any mode. Drawn without replacement; they stay until you remove them with 💣 ✓.' : 'A random puzzle from its own stack without replacement (each returns only once all puzzles in the filter have come up); no effect on scheduling.'; }
 
 function updateStats(){
   $('sDue').textContent=dueList().length; $('sNew').textContent=newToday()+'/'+settings.newPerDay; $('sSession').textContent=session.ok+'/'+session.n;
@@ -1458,8 +1526,8 @@ document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==
 </script>
 <script>
 (function(){ var s=document.getElementById('pieceSet'); if(!s) return; var ok={cburnett:1,fade:1,papercut:1,kosal:1,chessnut:1,fantasy:1};
-  try{ if(!localStorage.getItem('fc_pc2')){ if(settings.pieces==='fade'){ settings.pieces='cburnett'; saveSettings(); if(pos) render(); } localStorage.setItem('fc_pc2','1'); } }catch(e){}
-  s.value=ok[settings.pieces]?settings.pieces:'cburnett';
+  try{ if(!localStorage.getItem('fc_pc3')){ if(settings.pieces!=='fade'){ settings.pieces='fade'; saveSettings(); if(pos) render(); } localStorage.setItem('fc_pc3','1'); } }catch(e){}
+  s.value=ok[settings.pieces]?settings.pieces:'fade';
   s.onchange=function(){ settings.pieces=s.value; saveSettings(); if(pos) render(); toast('Piece style: '+s.options[s.selectedIndex].text); };
 })();
 </script>
