@@ -27,6 +27,16 @@ body{overflow-x:hidden}
 @media(min-width:760px){.layout{grid-template-columns:minmax(0,480px) 1fr;align-items:start}}
 .boardwrap{position:relative;width:100%;max-width:480px;margin:0 auto;user-select:none}
 .ldots{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}.ldots button{min-width:34px;padding:6px 8px;border-radius:999px;border:1px solid var(--line,#3a3f55);background:transparent;color:inherit;font:600 13px system-ui,sans-serif;cursor:pointer}.ldots button.done{background:#2bd67b33;border-color:#2bd67b}.ldots button.cur{background:#7df9ff;color:#0a0420;border-color:#7df9ff}.ldots button:disabled{opacity:.35;cursor:default}.lprog{height:6px;border-radius:3px;background:#ffffff1a;overflow:hidden;margin-top:8px}.lprog i{display:block;height:100%;background:linear-gradient(90deg,#7df9ff,#ff3fd0)}
+.bq{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at center,rgba(40,8,70,.94),rgba(4,2,14,.97));animation:bqIn 4s ease both;cursor:pointer}
+.bq .in{max-width:560px;text-align:center}
+.bq small{display:block;font:600 13px/1.3 system-ui,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:#7df9ff;margin-bottom:18px;opacity:0;animation:bqLine .5s ease .1s forwards}
+.bq p{margin:0;font:600 clamp(24px,7vw,40px)/1.22 Georgia,'Times New Roman',serif;color:#f4ecff;text-shadow:0 0 14px rgba(255,63,208,.55)}
+.bq p span{display:inline-block;margin:0 .18em;opacity:0;transform:translateY(8px);animation:bqLine .45s ease forwards}
+.bq p span.hi{color:#ffe9a8;text-shadow:0 0 16px #ffb84d,0 0 30px #ff3fd0}
+.bq cite{display:block;margin-top:18px;font:italic 500 15px/1.3 Georgia,serif;color:#cfefff;opacity:0;animation:bqLine .5s ease 2.5s forwards}
+@keyframes bqIn{0%{opacity:0}7%{opacity:1}88%{opacity:1}100%{opacity:0}}
+@keyframes bqLine{to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.bq p span,.bq small,.bq cite{animation:none;opacity:1;transform:none}}
 .mtbanner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.85);z-index:20;pointer-events:none;opacity:0;text-align:center;padding:16px 26px;border-radius:14px;background:rgba(10,4,32,.88);border:2px solid #ffd76b;box-shadow:0 0 28px rgba(255,215,107,.55),0 0 60px rgba(255,63,208,.35);white-space:nowrap}
 .mtbanner b{display:block;font:800 clamp(26px,8vw,40px)/1.05 system-ui,sans-serif;letter-spacing:.14em;color:#ffe9a8;text-shadow:0 0 10px #ffb84d,0 0 24px #ff3fd0}
 .mtbanner small{display:block;margin-top:6px;font:500 13px/1.3 system-ui,sans-serif;color:#cfefff;letter-spacing:.02em}
@@ -871,7 +881,7 @@ function deckCheck(){ if(!LEVELS||!prog.deck||deckLeft()>0) return; const d=prog
   prog.decks=prog.decks||[]; prog.decks.push({n:d.n, size:d.ids.length, made:d.made, done:today(), attempts:ev.length, stuck:lc.size, R0:d.R, R1:plRating()});
   prog.deckUsed=(prog.deckUsed||[]).concat(d.ids); prog.deck=null; prog.calibN=0; prog.rd=Math.max(rdNow(), RD_REDO); saveProg();
   const msg='Stapel '+d.n+' geschafft! '+ev.length+' Versuche'+(lc.size?', '+lc.size+' hartnäckige Puzzles im Blunder Pile':'')+'. Kurze Neueinstufung, dann kommt der nächste Stapel.';
-  toast(msg); setMsg('Stapel geschafft',msg); fireworks(6,8); }
+  toast(msg); setMsg('Stapel geschafft',msg); fireworks(6,8); stackQuote('done'); }
 function deckHud(){ if(!LEVELS) return ''; if(prog.deck){ const {st}=artsState(); const live=prog.deck.ids.filter(id=>st[id]&&!st[id].ret).length;
     return 'Stapel '+prog.deck.n+': noch '+deckLeft()+' von '+prog.deck.ids.length+' · '+(live>=DECK_WIP?'neue Puzzles pausiert, bis welche verblassen · ':''); }
   return 'Einstufung: '+plRating()+' ± '+ciHalf()+' · '+Math.min(prog.calibN||0,CAL_MIN)+'/'+CAL_MIN+' · '; }
@@ -967,7 +977,14 @@ function deckRebuild(dir){ const d=prog.deck, {st}=artsState(), lc=deckLeeches()
   prog.deckUsed=(prog.deckUsed||[]).concat(seenIds.filter(id=>!carry.includes(id)));
   const Rb=dir>0?Math.max(plRating(), d.R+DA_STEP):Math.min(plRating(), d.R-DA_STEP); prog.deck=null;
   const note=(dir>0?'Du bist über diesen Stapel hinausgewachsen. Neuer Stapel auf höherem Niveau (etwa '+Math.round(Rb)+').':'Dieser Stapel war zu schwer. Neuer Stapel auf passenderem Niveau (etwa '+Math.round(Rb)+').')+' '+carry.length+' angefangene Puzzles nimmst du mit.';
-  if(!deckMake(Rb, carry, note)){ prog.calibN=0; saveProg(); } }
+  if(!deckMake(Rb, carry, note)){ prog.calibN=0; saveProg(); } stackQuote(dir>0?'up':'down'); }
+// ---------- Zwischenspiel, wenn ein Stapel endet (geschafft, entwachsen oder zu schwer): 4 Sekunden Beckett ----------
+function stackQuote(kind){ try{ const old=document.querySelector('.bq'); if(old) old.remove();
+  const head={done:tr('Stapel geschafft','Stack cleared'), up:tr('Stapel entwachsen','Stack outgrown'), down:tr('Neuer Anlauf','A fresh start')}[kind]||'';
+  const words=['Ever tried.','Ever failed.','No matter.','Try again.','Fail again.','Fail better.'];
+  const el=document.createElement('div'); el.className='bq'; el.setAttribute('role','status');
+  el.innerHTML='<div class="in"><small>'+head+'</small><p>'+words.map((w,i)=>'<span class="'+(i===5?'hi':'')+'" style="animation-delay:'+(0.35+i*0.33).toFixed(2)+'s">'+w+'</span>').join(' ')+'</p><cite>— Samuel Beckett</cite></div>';
+  document.body.appendChild(el); const end=()=>{ if(el.parentNode) el.remove(); }; el.onclick=end; setTimeout(end,4000); }catch(e){} }
 function pick(){
   const mode=$('mode').value;
   if(mode==='master'){ const ml=puzzles.filter(p=>p.set==='Meisterpuzzles: Jobava London'); if(!ml.length) return null; const s=stackPool('master',ml); queueKind='Meisterpuzzles · Stapel '+s.pos+'/'+s.total+(s.round>1?' · Runde '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
