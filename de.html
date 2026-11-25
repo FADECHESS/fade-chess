@@ -1020,7 +1020,7 @@ function stackRender(){ const box=$('stackBox'); if(!box) return; const on=LEVEL
   const lab={faded:tr('verblasst','faded'),near:tr('fast sicher','almost there'),live:tr('im Umlauf','in rotation'),stuck:tr('hartnäckig','stubborn'),fresh:tr('ungesehen','unseen')};
   let html='<div class="sh" id="sbHead"><b>'+tr('Stapel ','Stack ')+d.n+'</b><span>'+tr('noch ','')+rest+tr(' von ',' of ')+tot+tr('',' left')+' '+chev+'</span></div><div class="sbar">'+seg+'</div>'
     +'<div class="slg">'+['faded','near','live','stuck','fresh'].filter(k=>c[k]).map(k=>'<span style="--c:'+SB_COL[k]+'">'+lab[k]+' '+c[k]+'</span>').join('')+'</div>'
-    +'<div class="skpi"><div><small>'+tr('Heute','Today')+'</small><b>'+fadedToday+tr(' verblasst',' faded')+' · '+sign(dayR)+'</b></div><div><small>'+tr('Fällig jetzt','Due now')+'</small><b>'+due+tr(' Puzzles',' puzzles')+'</b></div></div>';
+    +'<div class="skpi"><div><small>'+tr('Heute','Today')+'</small><b>'+fadedToday+tr(' verblasst',' faded')+' · Rating '+sign(dayR).replace('-','−')+'</b></div><div><small>'+tr('Fällig jetzt','Due now')+'</small><b>'+due+tr(' Puzzles',' puzzles')+'</b></div></div>';
   if(open){ const f=deckFirsts(), last=f.slice(-DA_MIN), isClean=e=>e.ok&&!e.hint&&!e.reveal&&!e.skip&&(e.rho==null||e.rho<=1), isOk=e=>e.ok&&!e.reveal&&!e.skip;
     const clean=last.filter(isClean).length, okS=f.slice(-12).filter(isOk).length;
     let fit, fitPct, fitCol;
@@ -1032,7 +1032,7 @@ function stackRender(){ const box=$('stackBox'); if(!box) return; const on=LEVEL
       const msg=s&&s.ret?tr('verblasst ✓','faded ✓'):(ARTS.RET-k===1?tr('noch 1 Tag bis verblasst','1 more day to fade'):tr('noch ','')+(ARTS.RET-k)+tr(' Tage bis verblasst',' more days to fade'));
       html+='<div class="srow"><span>'+tr('Dieses Puzzle','This puzzle')+'</span><span>'+dots+' <em>'+msg+'</em></span></div>'; }
     const motifs=Object.entries(left).sort((a,b)=>b[1]-a[1]);
-    if(motifs.length) html+='<div class="srow" style="border-bottom:0"><span>'+tr('Übrige Motive','Motifs left')+'</span></div><div class="schips">'+motifs.slice(0,4).map(([t,k])=>'<span>'+motifName(t)+' '+k+'</span>').join('')+(motifs.length>4?'<span>+ '+(motifs.length-4)+tr(' weitere',' more')+'</span>':'')+'</div>';
+    if(motifs.length) html+='<div class="srow" style="border-bottom:0"><span>'+tr('Übrige Motive','Motifs left')+'</span></div><div class="schips">'+motifs.slice(0,4).map(([t,k])=>'<span>'+motifName(t)+' · '+k+'</span>').join('')+(motifs.length>4?'<span>+ '+(motifs.length-4)+tr(' weitere',' more')+'</span>':'')+'</div>';
     const days=new Set((prog.events||[]).slice(d.ev0||0).filter(e=>e.mode==='arts'&&d.ids.includes(e.id)).map(e=>e.d)).size||1, rate=c.faded/days;
     html+='<div class="srow"><span>'+tr('Prognose','Forecast')+'</span>'+(c.faded&&days>=3?'<span>'+tr('leer in etwa ','empty in about ')+Math.max(1,Math.round(rest/rate))+tr(' Tagen',' days')+' <em>'+(Math.round(rate*10)/10)+tr(' verblasst pro Tag',' faded per day')+'</em></span>':'<em>'+tr('ab dem 3. Trainingstag mit diesem Stapel','from day 3 with this stack')+'</em>')+'</div>'+mt+'</div>'; }
   box.innerHTML=html; $('sbHead').onclick=sbToggle; }
