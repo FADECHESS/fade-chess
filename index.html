@@ -38,6 +38,15 @@ body{overflow-x:hidden}
 @keyframes bqIn{0%{opacity:0}7%{opacity:1}88%{opacity:1}100%{opacity:0}}
 @keyframes bqLine{to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.bq p span,.bq p.de,.bq small,.bq cite{animation:none;opacity:1;transform:none}}
+.sbox{border:1px solid #7f869a40;border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.sbox .sh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;cursor:pointer;user-select:none}
+.sbox .sh b{font-size:15px}.sbox .sh span{font-size:13px;opacity:.8;white-space:nowrap}
+.sbar{display:flex;gap:1px;height:12px;border-radius:4px;overflow:hidden;margin-top:8px;background:#7f869a33}.sbar i{display:block;height:100%;transition:width .5s ease}
+.slg{display:flex;flex-wrap:wrap;gap:3px 12px;font-size:12px;opacity:.85;margin-top:6px}.slg span:before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;background:var(--c)}
+.skpi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px}.skpi div{background:#7f869a1f;border-radius:8px;padding:7px 10px}.skpi small{display:block;font-size:12px;opacity:.75}.skpi b{font-size:15px}
+.srow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;padding:7px 0;border-top:1px solid #7f869a33}.srow em{font-style:normal;opacity:.7;font-size:12px}
+.smeter{height:6px;border-radius:3px;background:#7f869a33;overflow:hidden;margin:-2px 0 6px}.smeter i{display:block;height:100%;border-radius:3px;transition:width .5s ease}
+.schips{display:flex;flex-wrap:wrap;gap:5px;padding:2px 0 7px}.schips span{font-size:12px;padding:2px 8px;border-radius:999px;background:#7f869a26}
 .mtbanner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(.85);z-index:20;pointer-events:none;opacity:0;text-align:center;padding:16px 26px;border-radius:14px;background:rgba(10,4,32,.88);border:2px solid #ffd76b;box-shadow:0 0 28px rgba(255,215,107,.55),0 0 60px rgba(255,63,208,.35);white-space:nowrap}
 .mtbanner b{display:block;font:800 clamp(26px,8vw,40px)/1.05 system-ui,sans-serif;letter-spacing:.14em;color:#ffe9a8;text-shadow:0 0 10px #ffb84d,0 0 24px #ff3fd0}
 .mtbanner small{display:block;margin-top:6px;font:500 13px/1.3 system-ui,sans-serif;color:#cfefff;letter-spacing:.02em}
@@ -244,7 +253,7 @@ button.b{transition:transform .1s,background .2s}button.b:active{transform:scale
         <div class="row" style="margin-top:8px"><span class="note" id="aInfo" style="flex:1"></span><button class="b" id="aEnd">End run &amp; save</button></div>
       </div>
       <textarea id="askBox" class="hidden" readonly style="margin-top:8px;min-height:140px"></textarea>
-      <div class="hud hidden" id="artsHud"><div class="note" id="artsInfo"></div>
+      <div class="hud hidden" id="artsHud"><div class="sbox hidden" id="stackBox"></div><div class="note" id="artsInfo"></div>
         <div class="seqbar hidden" id="mgBar" style="margin-top:8px"><span class="note" id="mgNow" style="flex:1"></span><select id="mgSel" class="hidden"></select><button class="b" id="mgStart">✕ Cancel</button></div>
         <div class="note" id="mgInfo"></div></div>
       <div class="hud hidden" id="missHud"><div class="note" id="missInfo"></div></div>
@@ -565,7 +574,7 @@ function missList(){ const fl=filtered(); return fl.filter(p=>isMiss(p.id)).sort
 let arcadeRun={score:0,solved:0,best:0,seen:new Set(),start:Date.now()};
 function arcadeBest(){ return prog.arcade.highscores.length?prog.arcade.highscores[0].score:0; }
 function arcadeMult(){ return Math.min(3, 1+0.2*Math.max(0,streak-1)); }
-function renderHud(){ const m=$('mode').value; learnCard(); $('arcadeHud').classList.toggle('hidden', m!=='arcade'); $('missHud').classList.toggle('hidden', m!=='misses'); $('artsHud').classList.toggle('hidden', m!=='arts'); if(m==='arts'){ artsHud(); mgFill(); mgUI(); } $('woodHud').classList.toggle('hidden', m!=='wood');
+function renderHud(){ const m=$('mode').value; learnCard(); stackRender(); $('arcadeHud').classList.toggle('hidden', m!=='arcade'); $('missHud').classList.toggle('hidden', m!=='misses'); $('artsHud').classList.toggle('hidden', m!=='arts'); if(m==='arts'){ artsHud(); mgFill(); mgUI(); } $('woodHud').classList.toggle('hidden', m!=='wood');
   if(m==='wood'){ const w=prog.wood; const fl=filtered(); const ci=woodCycleInfo(fl); const goal=ci.goal; const doneNew=Math.max(0,(w.dayDone||0)-(w.slowTotal||0)); const ev=(prog.events||[]).filter(e=>e.mode==='wood'&&e.d===today()&&!e.reveal); const med=pct(ev.map(e=>e.secs),.5);
     $('woodBar').style.width=(goal?Math.min(100,100*doneNew/goal):0)+'%';
     $('woodInfo').innerHTML='Today <b>'+doneNew+' / '+goal+'</b> (adaptive)'+(doneNew>=goal?' ✓ keep going if you like':'')+(w.slowTotal?' · slow repeats '+(w.slowTotal-(w.slowQueue||[]).length)+'/'+w.slowTotal:'')+(ev.length?' · Median '+med+' s · '+Math.round(100*ev.filter(e=>e.ok&&!e.hint).length/ev.length)+' %':'')
@@ -823,6 +832,7 @@ function levelInfo(delta){ const el=$('levelInfo'); if(!LEVELS||!el) return; el.
 function levelUpdate(o){ if(!LEVELS||!cur||(cur.src!=='band'&&cur.src!=='master')) return; if(cur.src==='band'){ const b=bandOf(cur.rating); prog.bands=prog.bands||[]; if(!prog.bands.includes(b)) prog.bands.push(b); }
   if(prog.events.filter(e=>e.id===cur.id).length>1) return;                     // nur der erste Versuch an einem Puzzle zählt fürs Rating
   const R=prog.rating||settings.level||1400, n=prog.ratingN||0; const S=(o.ok&&!o.reveal)?(o.hint?0.5:1):0; const E=1/(1+Math.pow(10,(cur.rating-R)/400)); const K=n<15?56:n<50?32:20;
+  if(!prog.dayR||prog.dayR.d!==today()) prog.dayR={d:today(), r:R};
   const nr=Math.max(400, Math.min(3000, R+K*(S-E))); const d=Math.round(nr)-Math.round(R); rdUpdate(R, cur.rating, S); prog.rating=nr; prog.ratingN=n+1;
   prog.rHist=(prog.rHist||[]).concat(Math.round(nr)).slice(-200); prog.calibN=(prog.calibN||0)+1; if(!prog.deck && calReady()) deckMake(); else if(prog.deck) deckAdapt();
   levelInfo(d);
@@ -986,6 +996,46 @@ function stackQuote(kind){ try{ const old=document.querySelector('.bq'); if(old)
   const el=document.createElement('div'); el.className='bq'; el.setAttribute('role','status');
   el.innerHTML='<div class="in"><small>'+head+'</small><p>'+words.map((w,i)=>'<span class="'+(i===5?'hi':'')+'" style="animation-delay:'+(0.3+i*0.25).toFixed(2)+'s">'+w+'</span>').join(' ')+'</p><p class="de">Immer versucht. Immer gescheitert. Egal. Wieder versuchen. Wieder scheitern. Besser scheitern.</p><cite>— Samuel Beckett</cite></div>';
   document.body.appendChild(el); const end=()=>{ if(el.parentNode) el.remove(); }; el.onclick=end; setTimeout(end,4000); }catch(e){} }
+// ---------- Stapel-Übersicht (nur öffentliche Version): Segmentbalken, Tageswerte, Passung, aktuelles Puzzle, Motive, Prognose ----------
+const MOTIF={fork:['Gabel','Fork'],pin:['Fesselung','Pin'],skewer:['Spieß','Skewer'],discoveredAttack:['Abzug','Discovered attack'],doubleCheck:['Doppelschach','Double check'],deflection:['Ablenkung','Deflection'],attraction:['Hinlenkung','Attraction'],sacrifice:['Opfer','Sacrifice'],clearance:['Räumung','Clearance'],interference:['Verstellung','Interference'],intermezzo:['Zwischenzug','Intermezzo'],capturingDefender:['Verteidiger weg','Remove the defender'],xRayAttack:['Röntgenangriff','X-ray'],trappedPiece:['Gefangene Figur','Trapped piece'],hangingPiece:['Freie Figur','Hanging piece'],quietMove:['Stiller Zug','Quiet move'],defensiveMove:['Verteidigung','Defensive move'],zugzwang:['Zugzwang','Zugzwang'],smotheredMate:['Ersticktes Matt','Smothered mate'],backRankMate:['Grundreihenmatt','Back-rank mate'],mateIn1:['Matt in 1','Mate in 1'],mateIn2:['Matt in 2','Mate in 2'],mateIn3:['Matt in 3','Mate in 3'],mateIn4:['Matt in 4','Mate in 4'],mateIn5:['Matt in 5+','Mate in 5+'],promotion:['Umwandlung','Promotion'],underPromotion:['Unterverwandlung','Underpromotion'],advancedPawn:['Freibauer','Advanced pawn'],exposedKing:['Offener König','Exposed king'],kingsideAttack:['Königsangriff','Kingside attack'],queensideAttack:['Damenflügel','Queenside attack'],rookEndgame:['Turmendspiel','Rook endgame'],queenEndgame:['Damenendspiel','Queen endgame'],pawnEndgame:['Bauernendspiel','Pawn endgame'],bishopEndgame:['Läuferendspiel','Bishop endgame'],knightEndgame:['Springerendspiel','Knight endgame'],queenRookEndgame:['Dame+Turm-Endspiel','Queen and rook endgame'],endgame:['Endspiel','Endgame'],middlegame:['Mittelspiel','Middlegame'],opening:['Eröffnung','Opening']};
+function motifName(t){ const m=MOTIF[t]; return m?m[LG==='en'?1:0]:themeName(t); }
+const SB_COL={faded:'#8a8f9e', near:'#2bd6a0', live:'#8f7dff', stuck:'#ff7a59', fresh:'#7f869a55'};
+function sbToggle(){ settings.stackOpen=!settings.stackOpen; saveSettings(); stackRender(); }
+function stackRender(){ const box=$('stackBox'); if(!box) return; const on=LEVELS&&$('mode').value==='arts'; box.classList.toggle('hidden',!on); if(!on) return;
+  const open=!!settings.stackOpen, {st,n}=artsState(), td=today(), chev=open?'▴':'▾', mt=puzzles.some(p=>p.src==='master')?'<div class="srow"><span>Master Time</span><span>'+(prog.mtDue?tr('als Nächstes','next'):tr('in ','in ')+mtLeft()+tr(' Puzzles',' puzzles'))+'</span></div>':'';
+  const dayR=(prog.dayR&&prog.dayR.d===td)?plRating()-Math.round(prog.dayR.r):0, sign=v=>(v>0?'+':'')+v;
+  if(!prog.deck){ const ci=ciHalf(), k=Math.min(prog.calibN||0,CAL_MIN), goal=Math.round(1.96*CAL_RD);
+    box.innerHTML='<div class="sh" id="sbHead"><b>'+tr('Einstufung','Calibration')+'</b><span>'+plRating()+' ± '+ci+' '+chev+'</span></div>'
+      +'<div class="sbar"><i style="width:'+Math.round(100*k/CAL_MIN)+'%;background:'+SB_COL.live+'"></i></div>'
+      +'<div class="slg"><span style="--c:'+SB_COL.live+'">'+k+tr(' von ',' of ')+CAL_MIN+tr(' Puzzles',' puzzles')+'</span><span style="--c:'+SB_COL.near+'">'+tr('Intervall ±','interval ±')+ci+tr(' (Ziel ±',' (target ±')+goal+')</span></div>'
+      +(open?'<div class="smeter" style="margin-top:10px"><i style="width:'+Math.max(0,Math.min(100,Math.round(100*(RD_START-rdNow())/(RD_START-CAL_RD))))+'%;background:'+SB_COL.near+'"></i></div><div class="srow"><span>'+tr('Danach','Next')+'</span><em>'+tr('fester Stapel mit ','a fixed stack of ')+DECK_N+tr(' Puzzles auf deinem Niveau',' puzzles at your level')+'</em></div>'+mt:'');
+    $('sbHead').onclick=sbToggle; return; }
+  const d=prog.deck, lc=deckLeeches(); let c={faded:0,near:0,live:0,stuck:0,fresh:0}, fadedToday=0, due=0; const left={};
+  for(const id of d.ids){ const s=st[id]; let k;
+    if(lc.has(id)) k='stuck'; else if(!s) k='fresh'; else if(s.ret){ k='faded'; if(s.day===td) fadedToday++; } else if(s.streak>=ARTS.RET-1) k='near'; else k='live';
+    c[k]++; if(s&&!s.ret&&!lc.has(id)&&artsPrio(s,n)>=ARTS.NEW) due++;
+    if(k!=='faded'&&k!=='stuck'){ const p=puzzles.find(x=>x.id===id); const t=(p&&p.theme)||'?'; left[t]=(left[t]||0)+1; } }
+  const tot=d.ids.length, rest=tot-c.faded-c.stuck, w=v=>(100*v/tot).toFixed(2)+'%';
+  const seg=['faded','near','live','stuck','fresh'].map(k=>'<i style="width:'+w(c[k])+';background:'+SB_COL[k]+'"></i>').join('');
+  const lab={faded:tr('verblasst','faded'),near:tr('fast sicher','almost there'),live:tr('im Umlauf','in rotation'),stuck:tr('hartnäckig','stubborn'),fresh:tr('ungesehen','unseen')};
+  let html='<div class="sh" id="sbHead"><b>'+tr('Stapel ','Stack ')+d.n+'</b><span>'+tr('noch ','')+rest+tr(' von ',' of ')+tot+tr('',' left')+' '+chev+'</span></div><div class="sbar">'+seg+'</div>'
+    +'<div class="slg">'+['faded','near','live','stuck','fresh'].filter(k=>c[k]).map(k=>'<span style="--c:'+SB_COL[k]+'">'+lab[k]+' '+c[k]+'</span>').join('')+'</div>'
+    +'<div class="skpi"><div><small>'+tr('Heute','Today')+'</small><b>'+fadedToday+tr(' verblasst',' faded')+' · '+sign(dayR)+'</b></div><div><small>'+tr('Fällig jetzt','Due now')+'</small><b>'+due+tr(' Puzzles',' puzzles')+'</b></div></div>';
+  if(open){ const f=deckFirsts(), last=f.slice(-DA_MIN), isClean=e=>e.ok&&!e.hint&&!e.reveal&&!e.skip&&(e.rho==null||e.rho<=1), isOk=e=>e.ok&&!e.reveal&&!e.skip;
+    const clean=last.filter(isClean).length, okS=f.slice(-12).filter(isOk).length;
+    let fit, fitPct, fitCol;
+    if(f.length<12){ fit=tr('wird gemessen: ','measuring: ')+f.length+'/12'; fitPct=100*f.length/12; fitCol=SB_COL.fresh; }
+    else if(okS<=6){ fit=tr('zu schwer? ','too hard? ')+okS+tr(' von 12 gelöst (ab 4 neuer Stapel)',' of 12 solved (new stack at 4)'); fitPct=100*(12-okS)/8; fitCol=SB_COL.stuck; }
+    else { fit=clean+tr(' von ',' of ')+DA_UP+tr(' bis „entwachsen“',' to "outgrown"'); fitPct=100*clean/DA_UP; fitCol=SB_COL.near; }
+    html+='<div style="margin-top:10px"><div class="srow"><span>'+tr('Passung','Fit')+'</span><em>'+fit+'</em></div><div class="smeter"><i style="width:'+Math.min(100,Math.round(fitPct))+'%;background:'+fitCol+'"></i></div>';
+    if(cur&&d.ids.includes(cur.id)){ const s=st[cur.id], k=s?Math.min(s.streak,ARTS.RET):0, dots='●'.repeat(k)+'○'.repeat(ARTS.RET-k);
+      const msg=s&&s.ret?tr('verblasst ✓','faded ✓'):(ARTS.RET-k===1?tr('noch 1 Tag bis verblasst','1 more day to fade'):tr('noch ','')+(ARTS.RET-k)+tr(' Tage bis verblasst',' more days to fade'));
+      html+='<div class="srow"><span>'+tr('Dieses Puzzle','This puzzle')+'</span><span>'+dots+' <em>'+msg+'</em></span></div>'; }
+    const motifs=Object.entries(left).sort((a,b)=>b[1]-a[1]);
+    if(motifs.length) html+='<div class="srow" style="border-bottom:0"><span>'+tr('Übrige Motive','Motifs left')+'</span></div><div class="schips">'+motifs.slice(0,4).map(([t,k])=>'<span>'+motifName(t)+' '+k+'</span>').join('')+(motifs.length>4?'<span>+ '+(motifs.length-4)+tr(' weitere',' more')+'</span>':'')+'</div>';
+    const days=new Set((prog.events||[]).slice(d.ev0||0).filter(e=>e.mode==='arts'&&d.ids.includes(e.id)).map(e=>e.d)).size||1, rate=c.faded/days;
+    html+='<div class="srow"><span>'+tr('Prognose','Forecast')+'</span>'+(c.faded&&days>=3?'<span>'+tr('leer in etwa ','empty in about ')+Math.max(1,Math.round(rest/rate))+tr(' Tagen',' days')+' <em>'+(Math.round(rate*10)/10)+tr(' verblasst pro Tag',' faded per day')+'</em></span>':'<em>'+tr('ab dem 3. Trainingstag mit diesem Stapel','from day 3 with this stack')+'</em>')+'</div>'+mt+'</div>'; }
+  box.innerHTML=html; $('sbHead').onclick=sbToggle; }
 function pick(){
   const mode=$('mode').value;
   if(mode==='master'){ const ml=puzzles.filter(p=>p.set==='Meisterpuzzles: Jobava London'); if(!ml.length) return null; const s=stackPool('master',ml); queueKind='Meisterpuzzles · Stapel '+s.pos+'/'+s.total+(s.round>1?' · round '+s.round:''); return s.pool[Math.floor(Math.random()*s.pool.length)]; }
